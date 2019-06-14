@@ -1,0 +1,69 @@
+// Copyright © 2017, Aleksei Zakhlestin.
+// All rights reserved.
+
+// Redistribution and use in source and binary forms, with or without modification,
+// are permitted provided that the following conditions are met:
+
+//     * Redistributions of source code must retain the above copyright notice,
+//       this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above copyright notice,
+//       this list of conditions and the following disclaimer in the documentation
+//       and/or other materials provided with the distribution.
+//     * Neither the name of the Milk Farm Software, ltd. nor the names of its
+//       contributors may be used to endorse or promote products derived from this
+//       software without specific prior written permission.
+
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+// ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+// ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+expression = _{ soi ~ statement? ~ (eol ~ statement)* ~ eol? ~ eoi }
+statement =   { subject ~ predicate ~ object ~ graph_label? ~ "." }
+
+subject =     { _iriref | _blank_node_label }
+predicate =   { _iriref }
+object =      { _iriref | _blank_node_label | literal }
+graph_label = { _iriref | _blank_node_label }
+
+_blank_node_label     = _{ "_:" ~ blank_node_label }
+_iriref               = _{ "<" ~ iriref ~ ">" }
+_langtag              = _{ "@" ~ langtag }
+_string_literal_quote = _{ "\"" ~ string_literal_quote ~ "\"" }
+
+blank_node_label =     ${ (pn_chars_u | ascii_digits) ~ pn_chars? ~ ("."* ~ pn_chars)* }
+iriref =               ${ iriref_symbol* }
+literal =              { _string_literal_quote ~ ("^^" ~ (_iriref | _langtag))? }
+
+langtag =              ${ ascii_alpha+ ~ ("-" ~ (ascii_alpha | ascii_digits)+)* }
+string_literal_quote = ${ (echar | uchar | (!("\u{0022}" | "\u{005c}" | "\u{000a}" | "\u{000d}") ~ any))* }
+
+eol =           _{ ("\n" | "\r")+ }
+iriref_symbol = _{ uchar | iriref_char }
+uchar =         _{ ("\\u" ~ uchar4 ) | ("\\U" ~ uchar8 ) }
+uchar4 =         { hex ~ hex ~ hex ~ hex }
+uchar8 =         { hex ~ hex ~ hex ~ hex ~ hex ~ hex ~ hex ~ hex }
+iriref_char =    { (!('\u{0000}'..'\u{0020}' | "<" | ">" | "\"" | "{" | "}" | "|" | "^" | "`" | "\\") ~ any) }
+echar =         _{ "\\" ~ echar_char }
+echar_char =     { ("t" | "b" | "n" | "r" | "f" | "\"" | "\'" | "\\") }
+pn_chars_base = _{
+    ascii_alpha | '\u{00c0}'..'\u{00d6}' | '\u{00d8}'..'\u{00f6}' | '\u{00f8}'..'\u{02ff}'
+    | '\u{0370}'..'\u{037d}' | '\u{037f}'..'\u{07ff}' | '\u{0800}'..'\u{1fff}'
+    | '\u{200c}'..'\u{200d}' | '\u{2c00}'..'\u{2fef}' | '\u{3001}'..'\u{d7ff}'
+    | '\u{f900}'..'\u{fdcf}' | '\u{fdf0}'..'\u{fffd}' | '\u{10000}'..'\u{effff}'
+}
+pn_chars_u =    { pn_chars_base | "_" | ":" }
+pn_chars =      { pn_chars_u | "-" | ascii_digits | "\u{00B7}" | '\u{0300}'..'\u{036F}' | '\u{203F}'..'\u{2040}' }
+
+hex =           _{ '0'..'9' | 'A'..'F' | 'a'..'f' }
+ascii_alpha =   { 'A'..'Z' | 'a'..'z' }
+ascii_digits =  { '0'..'9' }
+
+comment =    _{ "#" ~ (!(eol | eoi) ~ any)* }
+whitespace = _{ ("\u{0009}" | "\u{0020}")+ } // whitespace gets run between all rules
