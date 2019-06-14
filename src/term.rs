@@ -10,8 +10,8 @@ pub struct IRI {
     value: &'static str,
 }
 
-impl IRI {
-    pub fn from(value: &'static str) -> IRI {
+impl From<&'static str> for IRI {
+    fn from(value: &'static str) -> IRI {
         IRI { value }
     }
 }
