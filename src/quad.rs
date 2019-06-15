@@ -15,15 +15,16 @@ pub struct Quad {
 }
 
 impl Quad {
-    pub fn new<S, O, C>(subject: S, predicate: IRI, object: O, context: C) -> Quad
+    pub fn new<S, P, O, C>(subject: S, predicate: P, object: O, context: C) -> Quad
     where
         S: Into<Subject>,
+        P: Into<Predicate>,
         O: Into<Object>,
         C: Into<Context>,
     {
         Quad {
             subject: subject.into(),
-            predicate,
+            predicate: predicate.into(),
             object: object.into(),
             context: context.into(),
         }

@@ -1,13 +1,14 @@
 mod dataset;
 mod quad;
+mod sum_type;
 mod term;
 use dataset::Dataset;
 use quad::Quad;
 use term::{Node, IRI};
 
 #[allow(dead_code)]
-
-fn main() {
+#[test]
+fn test() {
     let iddan = IRI::from("http://example.com#iddan");
     let likes = IRI::from("http://example.com#likes");
     let tamir = IRI::from("http://example.com#tamir");

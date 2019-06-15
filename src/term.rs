@@ -1,3 +1,5 @@
+use crate::sum_type;
+
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 pub struct Literal {
     value: &'static str,
@@ -19,45 +21,6 @@ impl From<&'static str> for IRI {
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 pub struct BlankNode;
 
-#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
-pub enum Node {
-    IRI(IRI),
-    BlankNode(BlankNode),
-    Literal(Literal),
-}
+sum_type!(#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)] pub enum Node, IRI, BlankNode, Literal);
 
-impl From<IRI> for Node {
-    fn from(node: IRI) -> Self {
-        Node::IRI(node)
-    }
-}
-
-impl From<BlankNode> for Node {
-    fn from(node: BlankNode) -> Self {
-        Node::BlankNode(node)
-    }
-}
-
-impl From<Literal> for Node {
-    fn from(node: Literal) -> Self {
-        Node::Literal(node)
-    }
-}
-
-#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
-pub enum Identifier {
-    IRI(IRI),
-    BlankNode(BlankNode),
-}
-
-impl From<IRI> for Identifier {
-    fn from(node: IRI) -> Self {
-        Identifier::IRI(node)
-    }
-}
-
-impl From<BlankNode> for Identifier {
-    fn from(node: BlankNode) -> Self {
-        Identifier::BlankNode(node)
-    }
-}
+sum_type!(#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)] pub enum Identifier, IRI, BlankNode);
