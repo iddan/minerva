@@ -1,11 +1,11 @@
+use std::sync::{Arc,Mutex};
 use hyper::{Body, Request, Response, Server};
 use hyper::rt::Future;
 use hyper::service::service_fn_ok;
-use std::sync::{Arc,Mutex};
+use log::{info};
 use serde_qs;
 use crate::dataset::Dataset;
 use crate::nquads_serialize;
-use log::{info};
 use crate::read_service;
 
 impl From<Request<Body>> for read_service::Params {
