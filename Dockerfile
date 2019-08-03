@@ -1,4 +1,7 @@
-FROM rust
+FROM rust as builder
 ADD . .
 RUN cargo build --release
-CMD target/release/rdf-server
+
+FROM scratch
+COPY --from=builder /fs /
+ENTRYPOINT [ "target/release/rdf-server" ]
