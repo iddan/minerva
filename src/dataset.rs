@@ -91,6 +91,14 @@ impl Dataset {
     }
 }
 
+impl From<Vec<Quad>> for Dataset {
+    fn from(vector: Vec<Quad>) -> Dataset {
+        let mut dataset = Dataset::new();
+        dataset.extend(vector);
+        dataset
+    }
+}
+
 impl IntoIterator for Dataset {
     type Item = Quad;
     type IntoIter = std::collections::hash_set::IntoIter<Quad>;

@@ -14,7 +14,7 @@ pub fn serialize_literal(literal: Literal) -> String {
 
 pub fn serialize_blank_node(blank_node: BlankNode) -> String {
     // TODO use explicit identifier
-    format!("_:")
+    format!("_:{}", blank_node.value)
 }
 
 pub fn serialize_iri(iri: IRI) -> String {

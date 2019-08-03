@@ -19,7 +19,7 @@ fn deserialize_identifier(string: &str) -> Identifier {
 }
 
 fn deserialize_blank_node(string: &str) -> BlankNode {
-    BlankNode::new()
+    BlankNode::new(Some(string.trim_start_matches("_:").to_owned()))
 }
 
 fn deserialize_iri(string: &str) -> IRI {
@@ -68,7 +68,6 @@ impl Iterator for NQuadsDeserializer {
                         return None
                     }
                     context = Some(deserialize_identifier(&accumulator));
-                    accumulator = String::new();
                     return Some(Quad::new(subject.unwrap(), predicate.unwrap(), object.unwrap(), context.unwrap()))
                 },
                 Some(' ') => {
@@ -103,7 +102,9 @@ mod tests {
 <http://example.com#iddan> <http://example.com#likes> <http://example.com#tamir> <http://example.com#ontology>
 <http://example.com#tamir> <http://example.com#likes> <http://example.com#iddan> <http://example.com#ontology>
 <http://example.com#iddan> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.com#Person> <http://example.com#ontology>
-<http://example.com#tamir> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.com#Person> <http://example.com#ontology>";
+<http://example.com#tamir> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.com#Person> <http://example.com#ontology>
+<http://example.com#tamir> <http://example.com#likes> <_:123> <http://example.com#ontology>
+<_:123> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.com#Person> <http://example.com#ontology>";
         let deserializer = NQuadsDeserializer { chars: nquads.chars() };
         let quads: HashSet<Quad> = deserializer.collect();
         assert_eq!(quads.len(), 5);

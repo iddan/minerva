@@ -1,5 +1,7 @@
+use std::time::{SystemTime,UNIX_EPOCH};
 use serde::{Deserialize, Serialize};
 use crate::namespace::XSD;
+
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct IRI {
@@ -24,11 +26,19 @@ impl From<&IRI> for IRI {
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub struct BlankNode;
+pub struct BlankNode {
+    pub value: String
+}
+
+// TODO: generate real unique
+fn generate_blank_node_id() -> String {
+    format!("{}", SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos())
+}
 
 impl BlankNode {
-    pub fn new() -> BlankNode {
-        BlankNode {}
+    pub fn new<V>(value: V) -> BlankNode
+    where V: Into<Option<String>> {
+        BlankNode { value: value.into().unwrap_or(generate_blank_node_id()) }
     }
 }
 
