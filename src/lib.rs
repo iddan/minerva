@@ -10,6 +10,7 @@ pub mod server_http;
 pub mod term;
 pub mod nquads_serialize;
 pub mod nquads_deserialize;
+mod read_service;
 
 #[cfg(test)]
 mod tests {
