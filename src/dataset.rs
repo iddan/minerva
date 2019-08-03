@@ -1,9 +1,10 @@
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 use crate::quad::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Dataset {
     quads: HashSet<Quad>,
 }
@@ -14,28 +15,31 @@ impl Dataset {
             quads: HashSet::new(),
         }
     }
+    pub fn len(&self) -> usize {
+        self.quads.len()
+    }
     pub fn insert(&mut self, quad: Quad) {
         self.quads.insert(quad);
     }
-    pub fn contains(self, quad: &Quad) -> bool {
+    pub fn contains(&self, quad: &Quad) -> bool {
         return self.quads.contains(quad);
     }
     pub fn match_quads(
-        self,
+        &self,
         subject: Option<Subject>,
         predicate: Option<Predicate>,
         object: Option<Object>,
         context: Option<Context>,
     ) -> impl Iterator<Item = Quad> {
-        self.quads.into_iter().filter(move |quad| {
-            (subject.map_or(true, |v| quad.subject == v)
-                && predicate.map_or(true, |v| quad.predicate == v)
-                && object.map_or(true, |v| quad.object == v))
-                && context.map_or(true, |v| quad.context == v)
+        self.quads.to_owned().into_iter().filter(move |quad| {
+            (subject.clone().map_or(true, |v| quad.subject == v)
+                && predicate.clone().map_or(true, |v| quad.predicate == v)
+                && object.clone().map_or(true, |v| quad.object == v))
+                && context.clone().map_or(true, |v| quad.context == v)
         })
     }
     pub fn subjects(
-        self,
+        &self,
         predicate: Option<Predicate>,
         object: Option<Object>,
         context: Option<Context>,
@@ -44,7 +48,7 @@ impl Dataset {
             .map(|quad| quad.subject)
     }
     pub fn predicates(
-        self,
+        &self,
         subject: Option<Subject>,
         object: Option<Object>,
         context: Option<Context>,
@@ -53,7 +57,7 @@ impl Dataset {
             .map(|quad| quad.predicate)
     }
     pub fn objects(
-        self,
+        &self,
         subject: Option<Subject>,
         predicate: Option<Predicate>,
         context: Option<Context>,
@@ -62,7 +66,7 @@ impl Dataset {
             .map(|quad| quad.object)
     }
     pub fn subject_objects(
-        self,
+        &self,
         predicate: Option<Predicate>,
         context: Option<Context>,
     ) -> impl Iterator<Item = (Subject, Object)> {
@@ -70,7 +74,7 @@ impl Dataset {
             .map(|quad| (quad.subject, quad.object))
     }
     pub fn subject_predicates(
-        self,
+        &self,
         object: Option<Object>,
         context: Option<Context>,
     ) -> impl Iterator<Item = (Subject, Predicate)> {
@@ -78,7 +82,7 @@ impl Dataset {
             .map(|quad| (quad.subject, quad.predicate))
     }
     pub fn predicate_objects(
-        self,
+        &self,
         subject: Option<Subject>,
         context: Option<Context>,
     ) -> impl Iterator<Item = (Predicate, Object)> {
@@ -129,5 +133,11 @@ impl SubAssign for Dataset {
         *self = Dataset {
             quads: self.quads.difference(&other.quads).cloned().collect(),
         };
+    }
+}
+
+impl Extend<Quad> for Dataset {
+    fn extend<T: IntoIterator<Item = Quad>>(&mut self, iter: T) {
+        self.quads.extend(iter)
     }
 }

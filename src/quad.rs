@@ -1,12 +1,13 @@
 use crate::term::*;
+use serde::{Deserialize, Serialize};
 
 pub type Subject = Identifier;
 pub type Predicate = IRI;
 pub type Object = Node;
 pub type Context = Identifier;
 
-// For simplicity sake let's keep it IRI triple until I'll understand how to type Nodes correctly.
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct Quad {
     pub subject: Subject,
     pub predicate: Predicate,
