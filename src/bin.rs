@@ -1,10 +1,9 @@
 use futures::future::Future;
-use rdf;
-
-use rdf::dataset::Dataset;
-use rdf::namespace::{Namespace, RDF};
-use rdf::quad::Quad;
-use rdf::term::{BlankNode};
+use minerva::server_http;
+use minerva::dataset::Dataset;
+use minerva::namespace::{Namespace, RDF};
+use minerva::quad::Quad;
+use minerva::term::{BlankNode};
 use log;
 use log::info;
 use env_logger;
@@ -23,7 +22,7 @@ fn main() {
         Quad::new(&tamir, &likes, &iddan, &ontology),
         Quad::new(&iddan, RDF.iri("type"), &person_type, &ontology),
         Quad::new(&tamir, RDF.iri("type"), &person_type, &ontology),
-        Quad::new(&tamir, &likes, BlankNode::new(None), &ontology),
+        Quad::new(&tamir, &likes, BlankNode::new(), &ontology),
         Quad::new(lior, RDF.iri("type"), &person_type, &ontology),
     ]);
 
@@ -31,12 +30,12 @@ fn main() {
         .filter(None, log::LevelFilter::Info)
         .init();
 
-    let address = "127.0.0.1:4567";
+    let address = "127.0.0.1:31013";
 
     info!("Listening on {}", address);
 
     tokio::run(
-        rdf::server_http::serve(dataset, address)
+        server_http::serve(dataset, address)
             .map_err(|e| eprintln!("server error: {}", e))
     );
 }

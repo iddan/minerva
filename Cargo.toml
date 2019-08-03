@@ -1,5 +1,5 @@
 [package]
-name = "rdf"
+name = "minerva"
 version = "0.1.0"
 authors = ["Iddan Aaronsohn <mail@aniddan.com>"]
 edition = "2018"
@@ -17,9 +17,9 @@ log = "0.4"
 env_logger = "*"
 
 [lib]
-name = "rdf"
+name = "minerva"
 path = "src/lib.rs"
 
 [[bin]]
-name = "rdf-server"
+name = "minerva-server"
 path = "src/bin.rs"

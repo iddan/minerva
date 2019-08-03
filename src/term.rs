@@ -36,9 +36,13 @@ fn generate_blank_node_id() -> String {
 }
 
 impl BlankNode {
-    pub fn new<V>(value: V) -> BlankNode
-    where V: Into<Option<String>> {
-        BlankNode { value: value.into().unwrap_or(generate_blank_node_id()) }
+    pub fn new() -> BlankNode {
+        BlankNode { value: generate_blank_node_id() }
+    }
+
+    pub fn from_value<V>(value: V) -> BlankNode
+    where V: Into<String> {
+        BlankNode { value: value.into() }
     }
 }
 

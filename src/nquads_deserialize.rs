@@ -1,6 +1,5 @@
 use crate::quad::{Quad, Subject, Predicate, Object, Context};
 use crate::term::{Identifier,IRI,Node,Literal,BlankNode};
-use crate::namespace::XSD;
 use std::str::Chars;
 
 fn deserialize_identifier(string: &str) -> Identifier {
@@ -19,7 +18,7 @@ fn deserialize_identifier(string: &str) -> Identifier {
 }
 
 fn deserialize_blank_node(string: &str) -> BlankNode {
-    BlankNode::new(Some(string.trim_start_matches("_:").to_owned()))
+    BlankNode::from_value(string.trim_start_matches("_:").to_owned())
 }
 
 fn deserialize_iri(string: &str) -> IRI {
@@ -49,7 +48,7 @@ fn deserialize_node(string: &str) -> Node {
 }
 
 
-struct NQuadsDeserializer {
+pub struct NQuadsDeserializer {
     chars: Chars<'static>,
 }
 
@@ -60,14 +59,13 @@ impl Iterator for NQuadsDeserializer {
         let mut subject: Option<Subject> = None;
         let mut predicate: Option<Predicate> = None;
         let mut object: Option<Object> = None;
-        let mut context: Option<Context> = None;
         loop {
             match self.chars.next() {
                 Some('\n') | None => {
                     if accumulator.is_empty() {
                         return None
                     }
-                    context = Some(deserialize_identifier(&accumulator));
+                    let context: Option<Context> = Some(deserialize_identifier(&accumulator));
                     return Some(Quad::new(subject.unwrap(), predicate.unwrap(), object.unwrap(), context.unwrap()))
                 },
                 Some(' ') => {

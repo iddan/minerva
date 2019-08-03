@@ -1,6 +1,5 @@
 #![crate_type = "lib"]
-#![crate_name = "rdf"]
-#![allow(dead_code)]
+#![crate_name = "minerva"]
 
 pub mod dataset;
 pub mod namespace;
