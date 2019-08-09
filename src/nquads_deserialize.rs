@@ -238,7 +238,7 @@ mod tests {
     use std::collections::HashSet;
     use crate::nquads_deserialize::NQuadsDeserializer;
     use crate::quad::Quad;
-    use crate::term::{Identifier, Node, IRI, BlankNode};
+    use crate::term::{Identifier, Node, IRI, BlankNode, Literal};
     #[test]
     fn deserialize() {
         let nquads = "
@@ -249,9 +249,9 @@ mod tests {
 <http://example.com#tamir> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.com#Person> <http://example.com#ontology> .
 <http://example.com#tamir> <http://example.com#likes> _:123 <http://example.com#ontology> .
 _:123 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.com#Person> <http://example.com#ontology> .
-_:123 <http://www.w3.org/2000/01/rdf-schema#label> \"Henry\" .
-_:123 <http://www.w3.org/2000/01/rdf-schema#label> \"Hendrik\"@nl .
-_:123 <http://www.w3.org/2000/01/rdf-schema#label> \"Heinrich\"@de .
+_:123 <http://www.w3.org/2000/01/rdf-schema#label> \"Henry\" <http://example.com#ontology> .
+_:123 <http://www.w3.org/2000/01/rdf-schema#label> \"Hendrik\"@nl <http://example.com#ontology> .
+_:123 <http://www.w3.org/2000/01/rdf-schema#label> \"Heinrich\"@de <http://example.com#ontology> .
 ";
         let deserializer = NQuadsDeserializer::new(nquads);
         let quads_result: Result<HashSet<Quad>, _> = deserializer.collect();
@@ -299,6 +299,24 @@ _:123 <http://www.w3.org/2000/01/rdf-schema#label> \"Heinrich\"@de .
                     predicate: IRI { value: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type".to_owned() },
                     object: Node::IRI(IRI { value: "http://example.com#Person".to_owned() }),
                     context: Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() })
+                },
+                Quad {
+                    subject: Identifier::BlankNode(BlankNode { value: "123".to_owned() }),
+                    predicate: IRI { value: "http://www.w3.org/2000/01/rdf-schema#label".to_owned() },
+                    object: Node::Literal(Literal::new("Henry", None, None)),
+                    context: Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }),
+                },
+                Quad {
+                    subject: Identifier::BlankNode(BlankNode { value: "123".to_owned() }),
+                    predicate: IRI { value: "http://www.w3.org/2000/01/rdf-schema#label".to_owned() },
+                    object: Node::Literal(Literal::new("Hendrik", None, Some("nl".to_owned()))),
+                    context: Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }),
+                },
+                Quad {
+                    subject: Identifier::BlankNode(BlankNode { value: "123".to_owned() }),
+                    predicate: IRI { value: "http://www.w3.org/2000/01/rdf-schema#label".to_owned() },
+                    object: Node::Literal(Literal::new("Heinrich", None, Some("de".to_owned()))),
+                    context: Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }),
                 }
         ]);
         assert_eq!(quads, set);
