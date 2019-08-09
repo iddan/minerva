@@ -103,7 +103,6 @@ fn deserialize_language(chars: &mut Peekable<impl Iterator<Item=char>>) -> Resul
 }
 
 
-// TODO rename
 fn deserialize_literal_value(chars: &mut Peekable<impl Iterator<Item=char>>) -> Result<String, String> {
     match chars.next() {
         Some('"') => {},
@@ -115,13 +114,20 @@ fn deserialize_literal_value(chars: &mut Peekable<impl Iterator<Item=char>>) -> 
         }
     };
     let mut accumulator = String::new();
+    let mut escaped = false;
     loop {
         match chars.next() {
-            Some('"') => {
+            Some('\\') => {
+                escaped = !escaped;
+            }
+            Some('"') if !escaped => {
                 return Ok(accumulator);
             },
             Some(c) => {
                 accumulator.push(c);
+                if escaped {
+                    escaped = false;
+                }
             },
             None => {
                 return Err("Unexpected EOF".to_owned())
@@ -161,7 +167,6 @@ fn deserialize_identifier(chars: &mut Peekable<impl Iterator<Item=char>>) -> Res
             Ok(Identifier::BlankNode(blank_node))
         },
         Some(c) => {
-            // TODO: better error
             Err(format!("Unexpected character {}", c))
         },
         None => {
@@ -217,8 +222,6 @@ impl <I: Iterator<Item=char>> Iterator for NQuadsDeserializer<I> {
         let mut predicate: Option<Predicate> = None;
         let mut object: Option<Object> = None;
         let mut context: Option<Context> = None;
-
-        // TODO correct line column
 
         let result: Result<Option<Quad>, String> = try {
             loop {
@@ -300,6 +303,8 @@ mod tests {
     use crate::term::{Identifier, Node, IRI, BlankNode, Literal};
     #[test]
     fn deserialize() {
+        // TODO add literal with space
+        // TODO add literal with escaped "
         let nquads = String::from_utf8(fs::read("src/test.nq").unwrap()).unwrap();
         let deserializer = NQuadsDeserializer::new(&nquads);
         let quads_result: Result<HashSet<Quad>, _> = deserializer.collect();
