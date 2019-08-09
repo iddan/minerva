@@ -380,11 +380,4 @@ mod tests {
         ]);
         assert_eq!(quads, set);
     }
-    #[test]
-    fn deserialize_ontology() {
-        let nquads = String::from_utf8(fs::read("src/ontology.nq").unwrap()).unwrap();
-        let deserializer = NQuadsDeserializer::new(&nquads);
-        let quads_result: Result<HashSet<Quad>, _> = deserializer.collect();
-        quads_result.unwrap();
-    }
 }
