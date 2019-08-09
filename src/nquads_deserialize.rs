@@ -109,6 +109,9 @@ fn deserialize_literal(string: &str) -> Result<Literal, String> {
                     }
                     language = Some(accumulator.clone());
                 }
+                if value.is_none() {
+                    return Err("Unexpected EOF".to_owned());
+                }
                 return Ok(Literal::new(value.unwrap(), datatype, language))
             }
         }
@@ -165,10 +168,11 @@ impl <'a>Iterator for NQuadsDeserializer<'a> {
         let mut context: Option<Context> = None;
         let line = self.line;
         let column = self.column;
+        let acc = accumulator.clone();
 
         // TODO correct line column
         let wrap_err = |error: String| -> String {
-            format!("At line {} column {}: {}", line, column, error)
+            format!("For {} at line {} column {}: {}", acc, line, column, error)
         };
 
         let result: Result<Option<Quad>, String> = try {
@@ -317,5 +321,12 @@ mod tests {
                 }
         ]);
         assert_eq!(quads, set);
+    }
+    #[test]
+    fn deserialize_ontology() {
+        let nquads = String::from_utf8(fs::read("src/ontology.nq").unwrap()).unwrap();
+        let deserializer = NQuadsDeserializer::new(&nquads);
+        let quads_result: Result<HashSet<Quad>, _> = deserializer.collect();
+        quads_result.unwrap();
     }
 }
