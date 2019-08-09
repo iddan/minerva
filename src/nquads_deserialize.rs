@@ -6,11 +6,11 @@ use std::str::Chars;
 fn deserialize_identifier(string: &str) -> Result<Identifier, String> {
     match string.chars().next() {
         Some('<') => {
-            let iri = deserialize_iri(&string).unwrap();
+            let iri = deserialize_iri(&string)?;
             Ok(Identifier::IRI(iri))
         },
         Some('_') => {
-            let blank_node = deserialize_blank_node(&string).unwrap();
+            let blank_node = deserialize_blank_node(&string)?;
             Ok(Identifier::BlankNode(blank_node))
         },
         Some(c) => {
@@ -100,7 +100,7 @@ fn deserialize_literal(string: &str) -> Result<Literal, String> {
                     if accumulator.is_empty() {
                         return Err("Unexpected EOF".to_owned());
                     }
-                    let iri = deserialize_iri(&accumulator).unwrap();
+                    let iri = deserialize_iri(&accumulator)?;
                     datatype = Some(iri);
                 }
                 else if has_language {
@@ -166,23 +166,25 @@ impl <'a>Iterator for NQuadsDeserializer<'a> {
         let mut predicate: Option<Predicate> = None;
         let mut object: Option<Object> = None;
         let mut context: Option<Context> = None;
-        let line = self.line;
-        let column = self.column;
-        let acc = accumulator.clone();
+        let mut line = self.line.clone();
+        let mut column = self.column.clone();
 
         // TODO correct line column
-        let wrap_err = |error: String| -> String {
-            format!("For {} at line {} column {}: {}", acc, line, column, error)
-        };
 
         let result: Result<Option<Quad>, String> = try {
             loop {
-                self.column += 1;
+                let acc = accumulator.clone();
+                column += 1;
+
+                let wrap_err = move |error: String| -> String {
+                    format!("{}, At line {} column {}: {}", acc, line, column, error)
+                };
+
                 match self.chars.next() {
                     Some('\n') => {
                         if accumulator.is_empty() {
-                            self.line += 1;
-                            self.column = 0;
+                            line += 1;
+                            column = 0;
                             continue
                         }
                         return Some(Err(wrap_err("Unexpected character \\n".to_owned())))
@@ -221,6 +223,9 @@ impl <'a>Iterator for NQuadsDeserializer<'a> {
                 }
             }
         };
+
+        self.line = line;
+        self.column = column;
 
         if result.is_ok() {
             let value = result.unwrap();
