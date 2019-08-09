@@ -147,14 +147,14 @@ pub struct NQuadsDeserializer<'a> {
 }
 
 
-impl NQuadsDeserializer<'static> {
-    pub fn new<'a>(nquads: &'a str) -> NQuadsDeserializer<'a> {
+impl <'a>NQuadsDeserializer<'a> {
+    pub fn new(nquads: &'a str) -> NQuadsDeserializer<'a> {
         return NQuadsDeserializer { column: 0, line: 1, chars: nquads.chars() };
     }
 }
 
 
-impl Iterator for NQuadsDeserializer<'static> {
+impl <'a>Iterator for NQuadsDeserializer<'a> {
     type Item = Result<Quad, String>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -166,6 +166,7 @@ impl Iterator for NQuadsDeserializer<'static> {
         let line = self.line;
         let column = self.column;
 
+        // TODO correct line column
         let wrap_err = |error: String| -> String {
             format!("At line {} column {}: {}", line, column, error)
         };
@@ -235,26 +236,15 @@ impl Iterator for NQuadsDeserializer<'static> {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
     use std::collections::HashSet;
     use crate::nquads_deserialize::NQuadsDeserializer;
     use crate::quad::Quad;
     use crate::term::{Identifier, Node, IRI, BlankNode, Literal};
     #[test]
     fn deserialize() {
-        let nquads = "
-<http://example.com/test#lior> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.com#Person> <http://example.com#ontology> .
-<http://example.com#iddan> <http://example.com#likes> <http://example.com#tamir> <http://example.com#ontology> .
-<http://example.com#tamir> <http://example.com#likes> <http://example.com#iddan> <http://example.com#ontology> .
-<http://example.com#iddan> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.com#Person> <http://example.com#ontology> .
-<http://example.com#tamir> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.com#Person> <http://example.com#ontology> .
-<http://example.com#tamir> <http://example.com#likes> _:123 <http://example.com#ontology> .
-_:123 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.com#Person> <http://example.com#ontology> .
-_:123 <http://www.w3.org/2000/01/rdf-schema#label> \"Henry\" <http://example.com#ontology> .
-_:123 <http://www.w3.org/2000/01/rdf-schema#label> \"Hendrik\"@nl <http://example.com#ontology> .
-_:123 <http://www.w3.org/2000/01/rdf-schema#label> \"Heinrich\"@de <http://example.com#ontology> .
-_:123 <http://example.com#age> \"20\"^^<http://www.w3.org/2001/XMLSchema#integer> <http://example.com#ontology> .
-";
-        let deserializer = NQuadsDeserializer::new(nquads);
+        let nquads = String::from_utf8(fs::read("src/test.nq").unwrap()).unwrap();
+        let deserializer = NQuadsDeserializer::new(&nquads);
         let quads_result: Result<HashSet<Quad>, _> = deserializer.collect();
         let quads = quads_result.unwrap();
         let mut set: HashSet<Quad> = HashSet::new();

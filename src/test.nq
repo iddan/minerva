@@ -1,0 +1,11 @@
+<http://example.com/test#lior> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.com#Person> <http://example.com#ontology> .
+<http://example.com#iddan> <http://example.com#likes> <http://example.com#tamir> <http://example.com#ontology> .
+<http://example.com#tamir> <http://example.com#likes> <http://example.com#iddan> <http://example.com#ontology> .
+<http://example.com#iddan> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.com#Person> <http://example.com#ontology> .
+<http://example.com#tamir> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.com#Person> <http://example.com#ontology> .
+<http://example.com#tamir> <http://example.com#likes> _:123 <http://example.com#ontology> .
+_:123 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.com#Person> <http://example.com#ontology> .
+_:123 <http://www.w3.org/2000/01/rdf-schema#label> "Henry" <http://example.com#ontology> .
+_:123 <http://www.w3.org/2000/01/rdf-schema#label> "Hendrik"@nl <http://example.com#ontology> .
+_:123 <http://www.w3.org/2000/01/rdf-schema#label> "Heinrich"@de <http://example.com#ontology> .
+_:123 <http://example.com#age> "20"^^<http://www.w3.org/2001/XMLSchema#integer> <http://example.com#ontology> .
