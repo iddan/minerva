@@ -88,10 +88,12 @@ fn deserialize_literal(string: &str) -> Result<Literal, String> {
                 }
             },
             Some(c) => {
-                if value.is_none() || has_datatype || has_language {
+                if value.is_none() || !has_datatype || !has_language {
                     accumulator.push(c);
                 }
-                return Err(format!("Unexpected character {}", c));
+                else {
+                    return Err(format!("Unexpected character {}", c));
+                }
             },
             None => {
                 if has_datatype {
@@ -107,11 +109,10 @@ fn deserialize_literal(string: &str) -> Result<Literal, String> {
                     }
                     language = Some(accumulator.clone());
                 }
-                break
+                return Ok(Literal::new(value.unwrap(), datatype, language))
             }
         }
-    };
-    Ok(Literal::new(value.unwrap(), datatype, language))
+    }
 }
 
 fn deserialize_node(string: &str) -> Result<Node, String> {
@@ -147,7 +148,7 @@ pub struct NQuadsDeserializer<'a> {
 
 
 impl NQuadsDeserializer<'static> {
-    fn new<'a>(nquads: &'a str) -> NQuadsDeserializer<'a> {
+    pub fn new<'a>(nquads: &'a str) -> NQuadsDeserializer<'a> {
         return NQuadsDeserializer { column: 0, line: 1, chars: nquads.chars() };
     }
 }
