@@ -252,6 +252,7 @@ _:123 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.com#Pers
 _:123 <http://www.w3.org/2000/01/rdf-schema#label> \"Henry\" <http://example.com#ontology> .
 _:123 <http://www.w3.org/2000/01/rdf-schema#label> \"Hendrik\"@nl <http://example.com#ontology> .
 _:123 <http://www.w3.org/2000/01/rdf-schema#label> \"Heinrich\"@de <http://example.com#ontology> .
+_:123 <http://example.com#age> \"20\"^^<http://www.w3.org/2001/XMLSchema#integer> <http://example.com#ontology> .
 ";
         let deserializer = NQuadsDeserializer::new(nquads);
         let quads_result: Result<HashSet<Quad>, _> = deserializer.collect();
@@ -316,6 +317,12 @@ _:123 <http://www.w3.org/2000/01/rdf-schema#label> \"Heinrich\"@de <http://examp
                     subject: Identifier::BlankNode(BlankNode { value: "123".to_owned() }),
                     predicate: IRI { value: "http://www.w3.org/2000/01/rdf-schema#label".to_owned() },
                     object: Node::Literal(Literal::new("Heinrich", None, Some("de".to_owned()))),
+                    context: Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }),
+                },
+                Quad {
+                    subject: Identifier::BlankNode(BlankNode { value: "123".to_owned() }),
+                    predicate: IRI { value: "http://example.com#age".to_owned() },
+                    object: Node::Literal(Literal::new("20", Some(IRI::new("http://www.w3.org/2001/XMLSchema#integer")), None)),
                     context: Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }),
                 }
         ]);
