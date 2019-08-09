@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 pub type Subject = Identifier;
 pub type Predicate = IRI;
 pub type Object = Node;
-pub type Context = Identifier;
+pub type Context = Option<Identifier>;
 
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Serialize, Deserialize)]

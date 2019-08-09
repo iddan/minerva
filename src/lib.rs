@@ -17,7 +17,7 @@ mod tests {
     use crate::dataset::Dataset;
     use crate::namespace::{Namespace, RDF};
     use crate::quad::Quad;
-    use crate::term::{Node, IRI};
+    use crate::term::{Node, IRI, Identifier};
     #[test]
     fn it_works() {
         let example = Namespace::new("http://example.com#");
@@ -26,20 +26,21 @@ mod tests {
         let tamir = example.iri("tamir");
         let Person = example.iri("Person");
         let ontology = example.iri("ontology");
-        let fact = Quad::new(&iddan, &likes, &tamir, &ontology);
+        let context = Some(Identifier::IRI(ontology));
+        let fact = Quad::new(&iddan, &likes, &tamir, context.clone());
         let mut dataset = Dataset::new();
         dataset.insert(fact);
         println!("{:?}", dataset);
-        let fact2 = Quad::new(&tamir, &likes, &iddan, &ontology);
+        let fact2 = Quad::new(&tamir, &likes, &iddan, context.clone());
         dataset.insert(fact2);
         println!("{:?}", dataset);
         for (subject, predicate) in dataset.subject_predicates(Some(Node::from(&iddan)), None) {
             println!("{:?} {:?}", subject, predicate);
         }
-        let fact3 = Quad::new(&iddan, RDF.iri("type"), &Person, &ontology);
-        let fact4 = Quad::new(&tamir, RDF.iri("type"), &Person, &ontology);
+        let fact3 = Quad::new(&iddan, RDF.iri("type"), &Person, context.clone());
+        let fact4 = Quad::new(&tamir, RDF.iri("type"), &Person, context.clone());
         let lior = IRI::new("http://example.com/test#lior");
-        let fact5 = Quad::new(lior, RDF.iri("type"), &Person, &ontology);
+        let fact5 = Quad::new(lior, RDF.iri("type"), &Person, context.clone());
         dataset.extend(vec![fact3, fact4, fact5]);
         println!("{:?}", serde_cbor::to_vec(&dataset));
     }

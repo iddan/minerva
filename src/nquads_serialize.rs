@@ -37,13 +37,21 @@ pub fn serialize_node(node: Node) -> String {
 }
 
 pub fn serialize_quad(quad: Quad) -> String {
-    format!(
-        "{} {} {} {}",
-        serialize_identifier(quad.subject),
-        serialize_iri(quad.predicate),
-        serialize_node(quad.object),
-        serialize_identifier(quad.context)
-    )
+    match quad.context {
+        Some(identifier) => format!(
+            "{} {} {} {} .",
+            serialize_identifier(quad.subject),
+            serialize_iri(quad.predicate),
+            serialize_node(quad.object),
+            serialize_identifier(identifier)
+        ),
+        None => format!(
+            "{} {} {} .",
+            serialize_identifier(quad.subject),
+            serialize_iri(quad.predicate),
+            serialize_node(quad.object),
+        )
+    }
 }
 
 pub fn serialize_quad_iterator(iterator: impl Iterator<Item=Quad>) -> impl Iterator<Item=String> {

@@ -1,16 +1,163 @@
-use crate::quad::{Quad, Subject, Predicate, Object, Context};
-use crate::term::{Identifier,IRI,Node,Literal,BlankNode};
 use std::str::Chars;
+use std::iter::Peekable;
+use std::rc::Rc;
+use crate::term::{Identifier,IRI,Node,Literal,BlankNode};
+use crate::quad::{Quad, Subject, Predicate, Object, Context};
 
 
-fn deserialize_identifier(string: &str) -> Result<Identifier, String> {
-    match string.chars().next() {
+fn deserialize_blank_node(chars: &mut Peekable<impl Iterator<Item=char>>) -> Result<BlankNode, String> {
+    for expected_char in "_:".chars() {
+        match chars.next() {
+            Some(c) if c != expected_char => {
+                return Err(format!("Unexpected character {}", c));
+            },
+            None => {
+                return Err("Unexpected EOF".to_owned());
+            },
+            _ => {}
+        }
+    }
+    let mut accumulator = String::new();
+    loop {
+        match chars.next() {
+            None if accumulator.is_empty() => {
+                return Err("Unexpected EOF".to_owned());
+            },
+            Some(' ') | None => {
+                return Ok(BlankNode::from_value(accumulator));
+            },
+            Some(c) => {
+                accumulator.push(c);
+            }
+        }
+    }
+}
+
+fn deserialize_iri(chars: &mut Peekable<impl Iterator<Item=char>>) -> Result<IRI, String> {
+    match chars.next() {
+        Some(c) if c != '<' => {
+            return Err(format!("Unexpected character {}", c));
+        },
+        None => {
+            return Err("Unexpected EOF".to_owned());
+        },
+        _ => {}
+    }
+    let mut accumulator = String::new();
+    loop {
+        match chars.next() {
+            Some('>') => {
+                return Ok(IRI::new(accumulator));
+            },
+            Some(c) => {
+                accumulator.push(c);
+
+            },
+            None => {
+                return Err("Unexpected EOF".to_owned());
+            }
+        }
+    }
+}
+
+
+fn deserialize_datatype(chars: &mut Peekable<impl Iterator<Item=char>>) -> Result<IRI, String> {
+    for expected_char in "^^".chars() {
+        let c = chars.next();
+        match c {
+            Some(c) if c == expected_char => {},
+            Some(c) => {
+                return Err(format!("Unexpected character {}", c));
+            },
+            None => {
+                return Err("Unexpected EOF".to_owned());
+            }
+        }
+    };
+    return deserialize_iri(chars);
+}
+
+
+fn deserialize_language(chars: &mut Peekable<impl Iterator<Item=char>>) -> Result<String, String> {
+    let c = chars.next();
+    match c {
+        Some('@') => {},
+        Some(c) => {
+            return Err(format!("Unexpected character {}", c));
+        },
+        None => {
+            return Err("Unexpected EOF".to_owned());
+        }
+    };
+    let mut accumulator = String::new();
+    loop {
+        match chars.peek() {
+            Some(' ') | Some('.') | None => {
+                return Ok(accumulator)
+            },
+            Some(c) => {
+                accumulator.push(chars.next().unwrap());
+            }
+        }
+    }
+}
+
+
+// TODO rename
+fn deserialize_literal_value(chars: &mut Peekable<impl Iterator<Item=char>>) -> Result<String, String> {
+    match chars.next() {
+        Some('"') => {},
+        Some(c) => {
+            return Err(format!("Unexpected character {}", c));
+        },
+        None => {
+            return Err("Unexpected EOF".to_owned());
+        }
+    };
+    let mut accumulator = String::new();
+    loop {
+        match chars.next() {
+            Some('"') => {
+                return Ok(accumulator);
+            },
+            Some(c) => {
+                accumulator.push(c);
+            },
+            None => {
+                return Err("Unexpected EOF".to_owned())
+            }
+        }
+    }   
+}
+
+
+fn deserialize_literal(chars: &mut Peekable<impl Iterator<Item=char>>) -> Result<Literal, String> {
+    let value = deserialize_literal_value(chars)?;
+    // TODO make functions do this:
+    match chars.peek() {
+        Some('^') => {
+            let datatype = deserialize_datatype(chars)?;
+            Ok(Literal::new(value, datatype, None))
+        },
+        Some('@') => {
+            let language = deserialize_language(chars)?;
+            Ok(Literal::new(value, None, language))
+        }
+        _ => {
+            Ok(Literal::new(value, None, None))
+        }
+    }
+}
+
+
+fn deserialize_identifier(chars: &mut Peekable<impl Iterator<Item=char>>) -> Result<Identifier, String> {
+    match chars.peek() {
         Some('<') => {
-            let iri = deserialize_iri(&string)?;
+            let iri = deserialize_iri(chars)?;
             Ok(Identifier::IRI(iri))
         },
         Some('_') => {
-            let blank_node = deserialize_blank_node(&string)?;
+            let blank_node = deserialize_blank_node(chars)?;
             Ok(Identifier::BlankNode(blank_node))
         },
         Some(c) => {
@@ -24,118 +171,23 @@ fn deserialize_identifier(string: &str) -> Result<Identifier, String> {
 }
 
 
-fn deserialize_blank_node(string: &str) -> Result<BlankNode, String> {
-    if !string.starts_with("_:") {
-        // TODO: better error
-        return Err(format!("Unexpected characters {}", &string[..2]));
-    }
-    let value = string.trim_start_matches("_:");
-    if value.is_empty() {
-        return Err("Unexpected EOF".to_owned());
-    }
-    Ok(BlankNode::from_value(value.to_owned()))
-}
-
-fn deserialize_iri(string: &str) -> Result<IRI, String> {
-    if !string.starts_with("<") {
-        // TODO: better error
-        return Err(format!("Unexpected character {}", &string[..1]))
-    }
-    if !string.ends_with(">") {
-        // TODO: better error
-        return Err(format!("Unexpected character {}", &string[string.len() - 1..]))
-    }
-    Ok(IRI::new(string.trim_start_matches("<").trim_end_matches(">")))
-}
-
-
-fn deserialize_literal(string: &str) -> Result<Literal, String> {
-    if !string.starts_with("\"") {
-        return Err(format!("Unexpected character {}", &string[..1]));
-    }
-    let mut accumulator = String::new();
-    let mut has_datatype = false;
-    let mut has_language = false;
-    let mut value: Option<String> = None;
-    let mut datatype: Option<IRI> = None;
-    let mut language: Option<String> = None;
-    let mut chars = string.chars().skip(1);
-    loop {
-        match chars.next() {
-            Some('"') => {
-                if value.is_none() {
-                    value = Some(accumulator.clone());
-                    accumulator = String::new();
-                }
-                else {
-                    return Err("Unexpected character \"".to_owned());
-                }
-            },
-            Some('^') => {
-                if value.is_some() && !has_datatype && !has_language && chars.next() == Some('^') {
-                    has_datatype = true;
-                }
-                else {
-                    return Err("Unexpected character ^".to_owned());
-                }
-            },
-            Some('@') => {
-                if value.is_some() && !has_datatype && !has_language {
-                    has_language = true;
-                }
-                else {
-                    return Err("Unexpected character @".to_owned());
-                }
-            },
-            Some(c) => {
-                if value.is_none() || !has_datatype || !has_language {
-                    accumulator.push(c);
-                }
-                else {
-                    return Err(format!("Unexpected character {}", c));
-                }
-            },
-            None => {
-                if has_datatype {
-                    if accumulator.is_empty() {
-                        return Err("Unexpected EOF".to_owned());
-                    }
-                    let iri = deserialize_iri(&accumulator)?;
-                    datatype = Some(iri);
-                }
-                else if has_language {
-                    if accumulator.is_empty() {
-                        return Err("Unexpected EOF".to_owned());
-                    }
-                    language = Some(accumulator.clone());
-                }
-                if value.is_none() {
-                    return Err("Unexpected EOF".to_owned());
-                }
-                return Ok(Literal::new(value.unwrap(), datatype, language))
-            }
-        }
-    }
-}
-
-fn deserialize_node(string: &str) -> Result<Node, String> {
-    match string.chars().next() {
+fn deserialize_node(chars: &mut Peekable<impl Iterator<Item=char>>) -> Result<Node, String> {
+    match chars.peek() {
         Some('<') => {
-            let iri = deserialize_iri(&string)?;
+            let iri = deserialize_iri(chars)?;
             Ok(Node::IRI(iri))
         },
-        Some('_') => {
-            let blank_node = deserialize_blank_node(&string)?;
-            Ok(Node::BlankNode(blank_node))
-        }
         Some('"') => {
-            let literal = deserialize_literal(&string)?;
+            let literal = deserialize_literal(chars)?;
             Ok(Node::Literal(literal))
-        }
+        },
+        Some('_') => {
+            let blank_node = deserialize_blank_node(chars)?;
+            Ok(Node::BlankNode(blank_node))
+        },
         Some(c) => {
-            // TODO: better error
             Err(format!("Unexpected character {}", c))
-        }
+        },
         None => {
             Err("Unexpected EOF".to_owned())
         }
@@ -143,89 +195,83 @@ fn deserialize_node(string: &str) -> Result<Node, String> {
 }
 
 
-pub struct NQuadsDeserializer<'a> {
-    chars: Chars<'a>,
+pub struct NQuadsDeserializer<I: Iterator<Item=char>> {
+    chars: Peekable<I>,
     column: u32,
     line: u32
 }
 
 
-impl <'a>NQuadsDeserializer<'a> {
-    pub fn new(nquads: &'a str) -> NQuadsDeserializer<'a> {
-        return NQuadsDeserializer { column: 0, line: 1, chars: nquads.chars() };
+impl <'a>NQuadsDeserializer<Chars<'a>> {
+    pub fn new(nquads: &'a str) -> NQuadsDeserializer<Chars<'a>> {
+        return NQuadsDeserializer { column: 0, line: 1, chars: nquads.chars().peekable() };
     }
 }
 
 
-impl <'a>Iterator for NQuadsDeserializer<'a> {
+impl <I: Iterator<Item=char>> Iterator for NQuadsDeserializer<I> {
     type Item = Result<Quad, String>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut accumulator = String::new();
         let mut subject: Option<Subject> = None;
         let mut predicate: Option<Predicate> = None;
         let mut object: Option<Object> = None;
         let mut context: Option<Context> = None;
-        let mut line = self.line.clone();
-        let mut column = self.column.clone();
 
         // TODO correct line column
 
         let result: Result<Option<Quad>, String> = try {
             loop {
-                let acc = accumulator.clone();
-                column += 1;
+                self.column += 1;
 
-                let wrap_err = move |error: String| -> String {
-                    format!("{}, At line {} column {}: {}", acc, line, column, error)
-                };
-
-                match self.chars.next() {
+                match self.chars.peek() {
                     Some('\n') => {
-                        if accumulator.is_empty() {
-                            line += 1;
-                            column = 0;
-                            continue
+                        if subject.is_some() {
+                            return Some(Err("Unexpected character \\n".to_owned()))
                         }
-                        return Some(Err(wrap_err("Unexpected character \\n".to_owned())))
+                        self.line += 1;
+                        self.column = 0;
+                        self.chars.next();
+                        continue
                     },
                     Some(' ') => {
+                        self.column += 1;
+                        self.chars.next();
+                    },
+                    Some('.') => {
+                        if object.is_some() {
+                            self.chars.next();
+                            if context.is_some() {
+                                return Some(Ok(Quad::new(subject.unwrap(), predicate.unwrap(), object.unwrap(), context.unwrap())))
+                            }
+                            return Some(Ok(Quad::new(subject.unwrap(), predicate.unwrap(), object.unwrap(), None)))
+                        }
+                        return Some(Err("Unexpected character .".to_owned()))
+                    },
+                    Some(_) => {
                         if subject.is_none() {
-                            let identifier = deserialize_identifier(&accumulator).map_err(&wrap_err)?;
+                            let identifier = deserialize_identifier(&mut self.chars)?;
                             subject = Some(identifier);
                         }
                         else if predicate.is_none() {
-                            let iri = deserialize_iri(&accumulator).map_err(&wrap_err)?;
+                            let iri = deserialize_iri(&mut self.chars)?;
                             predicate = Some(iri);
                         }
                         else if object.is_none() {
-                            let node = deserialize_node(&accumulator).map_err(&wrap_err)?;
+                            let node = deserialize_node(&mut self.chars)?;
                             object = Some(node);
                         }
                         else {
-                            let identifier = deserialize_identifier(&accumulator).map_err(&wrap_err)?;
-                            context = Some(identifier);
+                            let identifier = deserialize_identifier(&mut self.chars)?;
+                            context = Some(Some(identifier));
                         }
-                        accumulator = String::new();
                     },
-                    Some('.') => {
-                        if context.is_some() || object.is_some() && accumulator.is_empty() {
-                            return Some(Ok(Quad::new(subject.unwrap(), predicate.unwrap(), object.unwrap(), context.unwrap())))
-                        }
-                        accumulator.push('.');
-                    },
-                    Some(c) => {
-                        accumulator.push(c);
-                    }
                     None => {
                         return None
                     }
                 }
             }
         };
-
-        self.line = line;
-        self.column = column;
 
         if result.is_ok() {
             let value = result.unwrap();
@@ -237,7 +283,9 @@ impl <'a>Iterator for NQuadsDeserializer<'a> {
             }
         }
         else {
-            Some(Err(result.unwrap_err()))
+            let error = result.unwrap_err();
+            let wrapped_err = format!("At line {} column {}: {}", self.line, self.column, error);
+            Some(Err(wrapped_err))
         }
     }
 }
@@ -258,72 +306,72 @@ mod tests {
         let quads = quads_result.unwrap();
         let mut set: HashSet<Quad> = HashSet::new();
         set.extend(vec![
-                Quad {
-                    subject: Identifier::IRI(IRI { value: "http://example.com#tamir".to_owned() }),
-                    predicate: IRI { value: "http://example.com#likes".to_owned() },
-                    object: Node::IRI(IRI { value: "http://example.com#iddan".to_owned() }),
-                    context: Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }) 
-                }, 
-                Quad {
-                    subject: Identifier::IRI(IRI { value: "http://example.com#tamir".to_owned() }),
-                    predicate: IRI { value: "http://example.com#likes".to_owned() },
-                    object: Node::BlankNode(BlankNode { value: "123".to_owned() }),
-                    context: Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }) 
-                }, 
-                Quad {
-                    subject: Identifier::IRI(IRI { value: "http://example.com#iddan".to_owned() }),
-                    predicate: IRI { value: "http://example.com#likes".to_owned() },
-                    object: Node::IRI(IRI { value: "http://example.com#tamir".to_owned() }),
-                    context: Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }) 
-                }, 
-                Quad {
-                    subject: Identifier::IRI(IRI { value: "http://example.com#tamir".to_owned() }),
-                    predicate: IRI { value: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type".to_owned() },
-                    object: Node::IRI(IRI { value: "http://example.com#Person".to_owned() }),
-                    context: Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }) 
-                }, 
-                Quad {
-                    subject: Identifier::IRI(IRI { value: "http://example.com/test#lior".to_owned() }),
-                    predicate: IRI { value: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type".to_owned() },
-                    object: Node::IRI(IRI { value: "http://example.com#Person".to_owned() }),
-                    context: Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }) 
-                }, 
-                Quad {
-                    subject: Identifier::BlankNode(BlankNode { value: "123".to_owned() }),
-                    predicate: IRI { value: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type".to_owned() },
-                    object: Node::IRI(IRI { value: "http://example.com#Person".to_owned() }),
-                    context: Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }) 
-                }, 
-                Quad {
-                    subject: Identifier::IRI(IRI { value: "http://example.com#iddan".to_owned() }),
-                    predicate: IRI { value: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type".to_owned() },
-                    object: Node::IRI(IRI { value: "http://example.com#Person".to_owned() }),
-                    context: Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() })
-                },
-                Quad {
-                    subject: Identifier::BlankNode(BlankNode { value: "123".to_owned() }),
-                    predicate: IRI { value: "http://www.w3.org/2000/01/rdf-schema#label".to_owned() },
-                    object: Node::Literal(Literal::new("Henry", None, None)),
-                    context: Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }),
-                },
-                Quad {
-                    subject: Identifier::BlankNode(BlankNode { value: "123".to_owned() }),
-                    predicate: IRI { value: "http://www.w3.org/2000/01/rdf-schema#label".to_owned() },
-                    object: Node::Literal(Literal::new("Hendrik", None, Some("nl".to_owned()))),
-                    context: Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }),
-                },
-                Quad {
-                    subject: Identifier::BlankNode(BlankNode { value: "123".to_owned() }),
-                    predicate: IRI { value: "http://www.w3.org/2000/01/rdf-schema#label".to_owned() },
-                    object: Node::Literal(Literal::new("Heinrich", None, Some("de".to_owned()))),
-                    context: Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }),
-                },
-                Quad {
-                    subject: Identifier::BlankNode(BlankNode { value: "123".to_owned() }),
-                    predicate: IRI { value: "http://example.com#age".to_owned() },
-                    object: Node::Literal(Literal::new("20", Some(IRI::new("http://www.w3.org/2001/XMLSchema#integer")), None)),
-                    context: Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }),
-                }
+                Quad::new(
+                    Identifier::IRI(IRI { value: "http://example.com#tamir".to_owned() }),
+                    IRI { value: "http://example.com#likes".to_owned() },
+                    Node::IRI(IRI { value: "http://example.com#iddan".to_owned() }),
+                    Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }) 
+                ),
+                Quad::new(
+                    Identifier::IRI(IRI { value: "http://example.com#tamir".to_owned() }),
+                    IRI { value: "http://example.com#likes".to_owned() },
+                    Node::BlankNode(BlankNode { value: "123".to_owned() }),
+                    Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }) 
+                ),
+                Quad::new(
+                    Identifier::IRI(IRI { value: "http://example.com#iddan".to_owned() }),
+                    IRI { value: "http://example.com#likes".to_owned() },
+                    Node::IRI(IRI { value: "http://example.com#tamir".to_owned() }),
+                    Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }) 
+                ),
+                Quad::new(
+                    Identifier::IRI(IRI { value: "http://example.com#tamir".to_owned() }),
+                    IRI { value: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type".to_owned() },
+                    Node::IRI(IRI { value: "http://example.com#Person".to_owned() }),
+                    Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }) 
+                ),
+                Quad::new(
+                    Identifier::IRI(IRI { value: "http://example.com/test#lior".to_owned() }),
+                    IRI { value: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type".to_owned() },
+                    Node::IRI(IRI { value: "http://example.com#Person".to_owned() }),
+                    Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }) 
+                ),
+                Quad::new(
+                    Identifier::BlankNode(BlankNode { value: "123".to_owned() }),
+                    IRI { value: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type".to_owned() },
+                    Node::IRI(IRI { value: "http://example.com#Person".to_owned() }),
+                    Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }) 
+                ),
+                Quad::new(
+                    Identifier::IRI(IRI { value: "http://example.com#iddan".to_owned() }),
+                    IRI { value: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type".to_owned() },
+                    Node::IRI(IRI { value: "http://example.com#Person".to_owned() }),
+                    Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() })
+                ),
+                Quad::new(
+                    Identifier::BlankNode(BlankNode { value: "123".to_owned() }),
+                    IRI { value: "http://www.w3.org/2000/01/rdf-schema#label".to_owned() },
+                    Node::Literal(Literal::new("Henry", None, None)),
+                    Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }),
+                ),
+                Quad::new(
+                    Identifier::BlankNode(BlankNode { value: "123".to_owned() }),
+                    IRI { value: "http://www.w3.org/2000/01/rdf-schema#label".to_owned() },
+                    Node::Literal(Literal::new("Hendrik", None, Some("nl".to_owned()))),
+                    Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }),
+                ),
+                Quad::new(
+                    Identifier::BlankNode(BlankNode { value: "123".to_owned() }),
+                    IRI { value: "http://www.w3.org/2000/01/rdf-schema#label".to_owned() },
+                    Node::Literal(Literal::new("Heinrich", None, Some("de".to_owned()))),
+                    Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }),
+                ),
+                Quad::new(
+                    Identifier::BlankNode(BlankNode { value: "123".to_owned() }),
+                    IRI { value: "http://example.com#age".to_owned() },
+                    Node::Literal(Literal::new("20", Some(IRI::new("http://www.w3.org/2001/XMLSchema#integer")), None)),
+                    Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }),
+                )
         ]);
         assert_eq!(quads, set);
     }

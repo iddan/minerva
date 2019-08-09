@@ -3,7 +3,7 @@ use minerva::server_http;
 use minerva::dataset::Dataset;
 use minerva::namespace::{Namespace, RDF};
 use minerva::quad::Quad;
-use minerva::term::{BlankNode};
+use minerva::term::{BlankNode, Identifier};
 use log;
 use log::info;
 use env_logger;
@@ -17,13 +17,14 @@ fn main() {
     let lior = example.iri("lior");
     let person_type = example.iri("Person");
     let ontology = example.iri("ontology");
+    let context = Some(Identifier::IRI(ontology));
     let dataset = Dataset::from(vec![
-        Quad::new(&iddan, &likes, &tamir, &ontology),
-        Quad::new(&tamir, &likes, &iddan, &ontology),
-        Quad::new(&iddan, RDF.iri("type"), &person_type, &ontology),
-        Quad::new(&tamir, RDF.iri("type"), &person_type, &ontology),
-        Quad::new(&tamir, &likes, BlankNode::new(), &ontology),
-        Quad::new(lior, RDF.iri("type"), &person_type, &ontology),
+        Quad::new(&iddan, &likes, &tamir, context.clone()),
+        Quad::new(&tamir, &likes, &iddan, context.clone()),
+        Quad::new(&iddan, RDF.iri("type"), &person_type, context.clone()),
+        Quad::new(&tamir, RDF.iri("type"), &person_type, context.clone()),
+        Quad::new(&tamir, &likes, BlankNode::new(), context.clone()),
+        Quad::new(lior, RDF.iri("type"), &person_type, context.clone()),
     ]);
 
     env_logger::Builder::new()
