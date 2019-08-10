@@ -14,5 +14,5 @@
 Docker:
 
 ```bash
-docker run -p 31013:31013 minerva/minerva
+docker run -p 31013:31013 iddan/minerva
 ```
