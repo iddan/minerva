@@ -1,4 +1,4 @@
-use std::time::{SystemTime,UNIX_EPOCH};
+use uuid::Uuid;
 use serde::{Deserialize, Serialize};
 use crate::namespace::XSD;
 
@@ -32,7 +32,7 @@ pub struct BlankNode {
 
 // TODO: generate real unique
 fn generate_blank_node_id() -> String {
-    format!("{}", SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos())
+    Uuid::new_v4().to_string()
 }
 
 impl BlankNode {

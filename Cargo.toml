@@ -16,6 +16,7 @@ serde_qs = "*"
 log = "0.4"
 env_logger = "*"
 http = "*"
+uuid = { version = "0.7", features = ["v4"] }
 
 [lib]
 name = "minerva"
