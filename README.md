@@ -1,8 +1,8 @@
-<center>
+<p align="center">
     <img src="logo.svg" height=300>
-    <h1>Minerva</h1>
-    <p>The Knowledge Store</p>
-</center>
+</p>
+<h1 align="center">Minerva</h1>
+<p align="center">The Knowledge Store</p>
 
 ### Features
 
