@@ -1,6 +1,5 @@
 use std::str::Chars;
 use std::iter::Peekable;
-use std::rc::Rc;
 use crate::term::{Identifier,IRI,Node,Literal,BlankNode};
 use crate::quad::{Quad, Subject, Predicate, Object, Context};
 
@@ -95,7 +94,7 @@ fn deserialize_language(chars: &mut Peekable<impl Iterator<Item=char>>) -> Resul
             Some(' ') | Some('.') | None => {
                 return Ok(accumulator)
             },
-            Some(c) => {
+            Some(_) => {
                 accumulator.push(chars.next().unwrap());
             }
         }
@@ -207,13 +206,6 @@ pub struct NQuadsDeserializer<I: Iterator<Item=char>> {
 }
 
 
-impl <'a>NQuadsDeserializer<Chars<'a>> {
-    pub fn new(nquads: &'a str) -> NQuadsDeserializer<Chars<'a>> {
-        return NQuadsDeserializer { column: 0, line: 1, chars: nquads.chars().peekable() };
-    }
-}
-
-
 impl <I: Iterator<Item=char>> Iterator for NQuadsDeserializer<I> {
     type Item = Result<Quad, String>;
 
@@ -294,6 +286,11 @@ impl <I: Iterator<Item=char>> Iterator for NQuadsDeserializer<I> {
 }
 
 
+pub fn deserialize<'a>(nquads: &'a str) -> NQuadsDeserializer<Chars<'a>> {
+    return NQuadsDeserializer { column: 0, line: 1, chars: nquads.chars().peekable() };
+}
+
+
 #[cfg(test)]
 mod tests {
     use std::fs;
@@ -306,8 +303,7 @@ mod tests {
         // TODO add literal with space
         // TODO add literal with escaped "
         let nquads = String::from_utf8(fs::read("src/test.nq").unwrap()).unwrap();
-        let deserializer = NQuadsDeserializer::new(&nquads);
-        let quads_result: Result<HashSet<Quad>, _> = deserializer.collect();
+        let quads_result: Result<HashSet<Quad>, _> = deserialize(&nquads).collect();
         let quads = quads_result.unwrap();
         let mut set: HashSet<Quad> = HashSet::new();
         set.extend(vec![

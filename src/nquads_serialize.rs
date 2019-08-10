@@ -54,6 +54,6 @@ pub fn serialize_quad(quad: Quad) -> String {
     }
 }
 
-pub fn serialize_quad_iterator(iterator: impl Iterator<Item=Quad>) -> impl Iterator<Item=String> {
-    iterator.map(|quad| format!("\n{}", serialize_quad(quad)))
+pub fn serialize(iterator: impl Iterator<Item=Quad>) -> impl Iterator<Item=String> {
+    iterator.map(|quad| format!("{}\n", serialize_quad(quad)))
 }

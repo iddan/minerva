@@ -11,10 +11,11 @@ websocket = "*"
 tokio = "*"
 openssl = "*"
 futures = "*"
-hyper = "0.12"
+hyper = "0.12.33"
 serde_qs = "*"
 log = "0.4"
 env_logger = "*"
+http = "*"
 
 [lib]
 name = "minerva"
