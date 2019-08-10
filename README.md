@@ -11,8 +11,16 @@
 
 ### Usage
 
-Docker:
+#### Docker
 
 ```bash
 docker run -p 31013:31013 iddan/minerva
+```
+
+#### Build from source
+
+```
+git clone git@github.com:iddan/minerva.git;
+cd minerva;
+cargo run;
 ```
