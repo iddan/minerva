@@ -61,16 +61,16 @@ pub fn serialize(stream: impl Stream<Item=Quad, Error=impl Error>) -> impl Strea
     stream.map(|quad| serialize_quad(quad))
 }
 
+#[cfg(test)]
 mod tests {
     use std::fs;
+    use std::fmt;
+    use std::error::Error;
     use std::collections::HashSet;
-    use crate::nquads_serialize::serialize;
-    use crate::test_set;
-    use crate::quad::Quad;
     use futures::future::Future;
     use futures::stream::Stream;
-    use std::error::Error;
-    use std::fmt;
+    use crate::nquads_serialize::serialize;
+    use crate::test_set;
 
     // Just to make error in stream satisfied
 
@@ -97,7 +97,7 @@ mod tests {
         }));
 
         let test_set_stream = futures::stream::iter_ok::<_, NoError>(set.iter().map(|quad| quad.to_owned()));
-        let mut result = serialize(test_set_stream).collect();
+        let result = serialize(test_set_stream).collect();
         let serialized_vec = result.wait().unwrap();
         let mut serialized = HashSet::new();
         serialized.extend(serialized_vec.iter().map(|s| s.to_owned()));

@@ -9,7 +9,6 @@ use log::{info};
 use serde_qs;
 use crate::dataset::Dataset;
 use crate::nquads_serialize;
-use crate::nquads_deserialize;
 use crate::read_service;
 use crate::write_service;
 

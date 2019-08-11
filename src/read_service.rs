@@ -13,7 +13,7 @@ pub struct Params {
 }
 
 
-pub fn read(params: Params, dataset_lock: &Mutex<Dataset>) -> impl Iterator<Item=Quad> {
+pub fn read(params: Params, dataset_lock: &Mutex<Dataset>) -> impl Iterator<Item=&Quad> {
     let dataset = dataset_lock.lock().unwrap();
-    return dataset.match_quads(params.subject, params.predicate, params.object, params.context);
+    return dataset.match_quads(&params.subject, &params.predicate, &params.object, &params.context);
 }

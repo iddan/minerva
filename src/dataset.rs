@@ -26,16 +26,16 @@ impl Dataset {
     }
     pub fn match_quads(
         &self,
-        subject: Option<Subject>,
-        predicate: Option<Predicate>,
-        object: Option<Object>,
-        context: Option<Context>,
-    ) -> impl Iterator<Item = Quad> {
-        self.quads.to_owned().into_iter().filter(move |quad| {
-            (subject.clone().map_or(true, |v| quad.subject == v)
-                && predicate.clone().map_or(true, |v| quad.predicate == v)
-                && object.clone().map_or(true, |v| quad.object == v))
-                && context.clone().map_or(true, |v| quad.context == v)
+        subject: &Option<Subject>,
+        predicate: &Option<Predicate>,
+        object: &Option<Object>,
+        context: &Option<Context>,
+    ) -> impl Iterator<Item = &Quad> {
+        self.quads.into_iter().filter(|&quad| {
+            (subject.map_or(true, |v| quad.subject == v)
+                && predicate.map_or(true, |v| quad.predicate == v)
+                && object.map_or(true, |v| quad.object == v))
+                && context.map_or(true, |v| quad.context == v)
         })
     }
     pub fn subjects(
@@ -43,8 +43,8 @@ impl Dataset {
         predicate: Option<Predicate>,
         object: Option<Object>,
         context: Option<Context>,
-    ) -> impl Iterator<Item = Subject> {
-        self.match_quads(None, predicate, object, context)
+    ) -> impl Iterator<Item = &Subject> {
+        self.match_quads(&None, &predicate, &object, &context)
             .map(|quad| quad.subject)
     }
     pub fn predicates(
@@ -52,8 +52,8 @@ impl Dataset {
         subject: Option<Subject>,
         object: Option<Object>,
         context: Option<Context>,
-    ) -> impl Iterator<Item = Predicate> {
-        self.match_quads(subject, None, object, context)
+    ) -> impl Iterator<Item = &Predicate> {
+        self.match_quads(&subject, &None, &object, &context)
             .map(|quad| quad.predicate)
     }
     pub fn objects(
@@ -61,32 +61,32 @@ impl Dataset {
         subject: Option<Subject>,
         predicate: Option<Predicate>,
         context: Option<Context>,
-    ) -> impl Iterator<Item = Object> {
-        self.match_quads(subject, predicate, None, context)
+    ) -> impl Iterator<Item = &Object> {
+        self.match_quads(&subject, &predicate, &None, &context)
             .map(|quad| quad.object)
     }
     pub fn subject_objects(
         &self,
         predicate: Option<Predicate>,
         context: Option<Context>,
-    ) -> impl Iterator<Item = (Subject, Object)> {
-        self.match_quads(None, predicate, None, context)
+    ) -> impl Iterator<Item = (&Subject, &Object)> {
+        self.match_quads(&None, &predicate, &None, &context)
             .map(|quad| (quad.subject, quad.object))
     }
     pub fn subject_predicates(
         &self,
         object: Option<Object>,
         context: Option<Context>,
-    ) -> impl Iterator<Item = (Subject, Predicate)> {
-        self.match_quads(None, None, object, context)
+    ) -> impl Iterator<Item = (&Subject, &Predicate)> {
+        self.match_quads(&None, &None, &object, &context)
             .map(|quad| (quad.subject, quad.predicate))
     }
     pub fn predicate_objects(
         &self,
         subject: Option<Subject>,
         context: Option<Context>,
-    ) -> impl Iterator<Item = (Predicate, Object)> {
-        self.match_quads(subject, None, None, context)
+    ) -> impl Iterator<Item = (&Predicate, &Object)> {
+        self.match_quads(&subject, &None, &None, &context)
             .map(|quad| (quad.predicate, quad.object))
     }
 }
