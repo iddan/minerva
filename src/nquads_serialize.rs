@@ -70,6 +70,21 @@ mod tests {
     use futures::future::Future;
     use futures::stream::Stream;
     use std::error::Error;
+    use std::fmt;
+
+    // Just to make error in stream satisfied
+
+    #[derive(Debug)]
+    struct NoError;
+
+    impl fmt::Display for NoError {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(f, "")
+        }
+    }
+
+    impl Error for NoError {}
+
     #[test]
     pub fn test_serialize() {
         let set = test_set::get();
@@ -80,7 +95,8 @@ mod tests {
             s.push('\n');
             s
         }));
-        let test_set_stream = futures::stream::iter_ok::<_, dyn Error + Sized>(set.iter().map(|quad| quad.to_owned()));
+
+        let test_set_stream = futures::stream::iter_ok::<_, NoError>(set.iter().map(|quad| quad.to_owned()));
         let mut result = serialize(test_set_stream).collect();
         let serialized_vec = result.wait().unwrap();
         let mut serialized = HashSet::new();
