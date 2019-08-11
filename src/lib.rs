@@ -11,6 +11,7 @@ pub mod term;
 pub mod nquads_serialize;
 pub mod nquads_deserialize;
 mod read_service;
+mod test_set;
 
 #[cfg(test)]
 mod tests {

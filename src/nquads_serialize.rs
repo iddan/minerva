@@ -3,13 +3,14 @@ use crate::term::{Identifier,IRI,Node,Literal,BlankNode};
 use crate::namespace::XSD;
 
 pub fn serialize_literal(literal: Literal) -> String {
+    let escaped_value = literal.value.replace("\"", "\\\"");
     if literal.language.is_some() {
-        return format!("\"{}\"@{}", literal.value, literal.language.unwrap())
+        return format!("\"{}\"@{}", escaped_value, literal.language.unwrap())
     }
     if literal.datatype != XSD.iri("string") {
-        return format!("\"{}\"^^{}", literal.value, serialize_iri(literal.datatype))
+        return format!("\"{}\"^^{}", escaped_value, serialize_iri(literal.datatype))
     }
-    format!("\"{}\"", literal.value)
+    format!("\"{}\"", escaped_value)
 }
 
 pub fn serialize_blank_node(blank_node: BlankNode) -> String {
@@ -56,4 +57,21 @@ pub fn serialize_quad(quad: Quad) -> String {
 
 pub fn serialize(iterator: impl Iterator<Item=Quad>) -> impl Iterator<Item=String> {
     iterator.map(|quad| format!("{}\n", serialize_quad(quad)))
+}
+
+mod tests {
+    use std::fs;
+    use std::collections::HashSet;
+    use crate::nquads_serialize::serialize;
+    use crate::test_set;
+    use crate::quad::Quad;
+    #[test]
+    pub fn test_serialize() {
+        let set = test_set::get();
+        let nquads = String::from_utf8(fs::read("src/test_set.nq").unwrap()).unwrap();
+        let mut nquads_set = HashSet::new();
+        nquads_set.extend(nquads.split('\n').map(|s| s.to_owned()));
+        let serialized: HashSet<String, _> = serialize(set.iter().map(|quad| quad.to_owned())).collect();
+        assert_eq!(serialized, nquads_set);
+    }
 }
