@@ -11,6 +11,7 @@ use crate::dataset::Dataset;
 use crate::nquads_serialize;
 use crate::nquads_deserialize;
 use crate::read_service;
+use crate::write_service;
 
 impl From<Request<Body>> for read_service::Params {
     fn from(request: Request<Body>) -> read_service::Params {
@@ -33,7 +34,9 @@ impl From<Request<Body>> for read_service::Params {
 fn quads_service_get<'a>(request: Request<Body>, dataset_lock: Arc<Mutex<Dataset>>) -> Box<Future<Item=Response<Body>, Error=hyper::Error> + Send> {
     let params: read_service::Params = request.into();
     let quads = read_service::read(params, &dataset_lock);
-    let stream = futures::stream::iter_ok::<_, hyper::Error>(nquads_serialize::serialize(quads));
+    // TODO make read service return stream
+    let quads_stream = futures::stream::iter_ok::<_, hyper::Error>(quads);
+    let stream = nquads_serialize::serialize(quads_stream);
     Box::new(future::ok(Response::builder()
         .status(200)
         .header("Content-Type", "x-nquads")
@@ -46,24 +49,21 @@ fn quads_service_post(request: Request<Body>, dataset_lock: Arc<Mutex<Dataset>>)
     Box::new(request.into_body().concat2().and_then(move |body| {
         // TODO error handle
         let nquads = String::from_utf8(body.to_vec()).unwrap();
-        let quads = nquads_deserialize::deserialize(&nquads);
-        // TODO move
-        let mut dataset = dataset_lock.lock().unwrap();
-        for result in quads {
-            if result.is_err() {
-                return Ok(
-                    Response::builder()
-                        .status(401)
-                        .body(Body::empty())
-                        .unwrap()
-                )
-            }
-            dataset.insert(result.unwrap())
+        let result = write_service::write(nquads, &dataset_lock);
+        match result {
+            Ok(_) => Ok(
+                Response::builder()
+                    .status(201)
+                    .body(Body::empty())
+                    .unwrap()
+            ),
+            Err(_) => Ok(
+                Response::builder()
+                    .status(401)
+                    .body(Body::empty())
+                    .unwrap()
+            )
         }
-        Ok(Response::builder()
-            .status(201)
-            .body(Body::empty())
-            .unwrap())
     }))
 }
 
