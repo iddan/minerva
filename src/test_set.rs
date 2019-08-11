@@ -1,3 +1,4 @@
+
 use std::collections::HashSet;
 use crate::term::{IRI, Literal, BlankNode, Identifier, Node};
 use crate::quad::Quad;

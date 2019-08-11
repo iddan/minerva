@@ -70,8 +70,13 @@ mod tests {
         let set = test_set::get();
         let nquads = String::from_utf8(fs::read("src/test_set.nq").unwrap()).unwrap();
         let mut nquads_set = HashSet::new();
-        nquads_set.extend(nquads.split('\n').map(|s| s.to_owned()));
+        nquads_set.extend(nquads.split('\n').map(|s| {
+            let mut s = s.to_owned();
+            s.push('\n');
+            s
+        }));
         let serialized: HashSet<String, _> = serialize(set.iter().map(|quad| quad.to_owned())).collect();
+        println!("{:?}", serialized.difference(&nquads_set));
         assert_eq!(serialized, nquads_set);
     }
 }
