@@ -300,8 +300,6 @@ mod tests {
     use crate::term::{Identifier, Node, IRI, BlankNode, Literal};
     #[test]
     fn test_deserialize() {
-        // TODO add literal with space
-        // TODO add literal with escaped "
         let nquads = String::from_utf8(fs::read("src/test.nq").unwrap()).unwrap();
         let quads_result: Result<HashSet<Quad>, _> = deserialize(&nquads).collect();
         let quads = quads_result.unwrap();
@@ -369,10 +367,22 @@ mod tests {
                 ),
                 Quad::new(
                     Identifier::BlankNode(BlankNode { value: "123".to_owned() }),
+                    IRI { value: "http://www.w3.org/2000/01/rdf-schema#label".to_owned() },
+                    Node::Literal(Literal::new("Hei nrich", None, None)),
+                    Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }),
+                ),
+                Quad::new(
+                    Identifier::BlankNode(BlankNode { value: "123".to_owned() }),
+                    IRI { value: "http://www.w3.org/2000/01/rdf-schema#label".to_owned() },
+                    Node::Literal(Literal::new("Hei \"nrich", None, None)),
+                    Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }),
+                ),
+                Quad::new(
+                    Identifier::BlankNode(BlankNode { value: "123".to_owned() }),
                     IRI { value: "http://example.com#age".to_owned() },
                     Node::Literal(Literal::new("20", Some(IRI::new("http://www.w3.org/2001/XMLSchema#integer")), None)),
                     Identifier::IRI(IRI { value: "http://example.com#ontology".to_owned() }),
-                )
+                ),
         ]);
         assert_eq!(quads, set);
     }

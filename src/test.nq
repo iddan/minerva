@@ -8,4 +8,6 @@ _:123 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.com#Pers
 _:123 <http://www.w3.org/2000/01/rdf-schema#label> "Henry" <http://example.com#ontology> .
 _:123 <http://www.w3.org/2000/01/rdf-schema#label> "Hendrik"@nl <http://example.com#ontology> .
 _:123 <http://www.w3.org/2000/01/rdf-schema#label> "Heinrich"@de <http://example.com#ontology> .
+_:123 <http://www.w3.org/2000/01/rdf-schema#label> "Hei nrich" <http://example.com#ontology> .
+_:123 <http://www.w3.org/2000/01/rdf-schema#label> "Hei \"nrich" <http://example.com#ontology> .
 _:123 <http://example.com#age> "20"^^<http://www.w3.org/2001/XMLSchema#integer> <http://example.com#ontology> .
