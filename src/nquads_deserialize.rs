@@ -295,11 +295,11 @@ pub fn deserialize<'a>(nquads: &'a str) -> NQuadsDeserializer<Chars<'a>> {
 mod tests {
     use std::fs;
     use std::collections::HashSet;
-    use crate::nquads_deserialize::NQuadsDeserializer;
+    use crate::nquads_deserialize::deserialize;
     use crate::quad::Quad;
     use crate::term::{Identifier, Node, IRI, BlankNode, Literal};
     #[test]
-    fn deserialize() {
+    fn test_deserialize() {
         // TODO add literal with space
         // TODO add literal with escaped "
         let nquads = String::from_utf8(fs::read("src/test.nq").unwrap()).unwrap();
