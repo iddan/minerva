@@ -192,72 +192,75 @@ pub struct NQuadsDeserializer<I: Iterator<Item = char>> {
     line: u32,
 }
 
-impl<I: Iterator<Item = char>> Iterator for NQuadsDeserializer<I> {
-    type Item = Result<Quad<'static>, String>;
-
-    fn next(&mut self) -> Option<Self::Item> {
+impl<I: Iterator<Item = char>> NQuadsDeserializer<I> {
+    fn get_next(&self, c: char) -> Result<Option<Quad>, String> {
         let mut subject: Option<Subject> = None;
         let mut predicate: Option<Predicate> = None;
         let mut object: Option<Object> = None;
         let mut context: Option<Context> = None;
+        loop {
+            self.column += 1;
 
-        let result: Result<Option<Quad>, String> = try {
-            loop {
-                self.column += 1;
-
-                match self.chars.peek() {
-                    Some('\n') => {
-                        if subject.is_some() {
-                            return Some(Err("Unexpected character \\n".to_owned()));
-                        }
-                        self.line += 1;
-                        self.column = 0;
-                        self.chars.next();
-                        continue;
+            match self.chars.peek() {
+                Some('\n') => {
+                    if subject.is_some() {
+                        return Some(Err("Unexpected character \\n".to_owned()));
                     }
-                    Some(' ') => {
-                        self.column += 1;
+                    self.line += 1;
+                    self.column = 0;
+                    self.chars.next();
+                    continue;
+                }
+                Some(' ') => {
+                    self.column += 1;
+                    self.chars.next();
+                }
+                Some('.') => {
+                    if object.is_some() {
                         self.chars.next();
-                    }
-                    Some('.') => {
-                        if object.is_some() {
-                            self.chars.next();
-                            if context.is_some() {
-                                return Some(Ok(Quad::new(
-                                    subject.unwrap(),
-                                    predicate.unwrap(),
-                                    object.unwrap(),
-                                    context.unwrap(),
-                                )));
-                            }
+                        if context.is_some() {
                             return Some(Ok(Quad::new(
                                 subject.unwrap(),
                                 predicate.unwrap(),
                                 object.unwrap(),
-                                None,
+                                context.unwrap(),
                             )));
                         }
-                        return Some(Err("Unexpected character .".to_owned()));
+                        return Some(Ok(Quad::new(
+                            subject.unwrap(),
+                            predicate.unwrap(),
+                            object.unwrap(),
+                            None,
+                        )));
                     }
-                    Some(_) => {
-                        if subject.is_none() {
-                            let identifier = deserialize_identifier(&mut self.chars)?;
-                            subject = Some(&identifier);
-                        } else if predicate.is_none() {
-                            let iri = deserialize_iri(&mut self.chars)?;
-                            predicate = Some(&iri);
-                        } else if object.is_none() {
-                            let node = deserialize_node(&mut self.chars)?;
-                            object = Some(&node);
-                        } else {
-                            let identifier = deserialize_identifier(&mut self.chars)?;
-                            context = Some(Some(&identifier));
-                        }
-                    }
-                    None => return None,
+                    return Some(Err("Unexpected character .".to_owned()));
                 }
+                Some(_) => {
+                    if subject.is_none() {
+                        let identifier = deserialize_identifier(&mut self.chars)?;
+                        subject = Some(&identifier);
+                    } else if predicate.is_none() {
+                        let iri = deserialize_iri(&mut self.chars)?;
+                        predicate = Some(&iri);
+                    } else if object.is_none() {
+                        let node = deserialize_node(&mut self.chars)?;
+                        object = Some(&node);
+                    } else {
+                        let identifier = deserialize_identifier(&mut self.chars)?;
+                        context = Some(Some(&identifier));
+                    }
+                }
+                None => return None,
             }
-        };
+        }
+    }
+}
+
+impl<I: Iterator<Item = char>> Iterator for NQuadsDeserializer<I> {
+    type Item = Result<Quad<'static>, String>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let result = self.get_next();
 
         if result.is_ok() {
             let value = result.unwrap();

@@ -1,7 +1,5 @@
 #![crate_type = "lib"]
 #![crate_name = "minerva"]
-#![feature(try_blocks)]
-#![feature(trait_alias)]
 
 pub mod dataset;
 pub mod memory_store;

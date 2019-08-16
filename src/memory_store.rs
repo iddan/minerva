@@ -1,5 +1,5 @@
 use crate::quad::{Context, Object, Predicate, Quad, Subject};
-use crate::store::{Quads, Store};
+use crate::store::Store;
 use crate::term::{node_to_identifier, Node, IRI};
 use petgraph::graph::{DiGraph, EdgeIndex, NodeIndex};
 use petgraph::visit::EdgeRef;
@@ -40,7 +40,7 @@ impl<'a> Store<'a> for MemoryStore<'a> {
         self.graph.edge_count()
     }
 
-    fn insert_quads(&self, quads: &Iterator<Item = &'a Quad<'a>>) {
+    fn insert_quads(&self, quads: &dyn Iterator<Item = &'a Quad<'a>>) {
         for quad in quads {
             let subject = quad.subject;
             let predicate = quad.predicate;
@@ -64,7 +64,7 @@ impl<'a> Store<'a> for MemoryStore<'a> {
         predicate: Option<Predicate<'a>>,
         object: Option<Object<'a>>,
         context: Context<'a>,
-    ) -> Quads<'a> {
+    ) -> dyn Iterator<Item = Quad<'a>> {
         match (subject, predicate, object, context) {
             (Some(subject), None, None, None) => {
                 let subject_index = self.node_to_index[subject.into()];

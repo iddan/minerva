@@ -29,7 +29,7 @@ impl<'a> From<Request<Body>> for read_service::Params<'a> {
 fn quads_service_get<'a>(
     request: Request<Body>,
     dataset_lock: Arc<Mutex<Dataset>>,
-) -> Box<Future<Item = Response<Body>, Error = hyper::Error> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = hyper::Error> + Send> {
     let params: read_service::Params = request.into();
     let quads = read_service::read(params, &dataset_lock);
     // TODO make read service return stream
@@ -47,7 +47,7 @@ fn quads_service_get<'a>(
 fn quads_service_post(
     request: Request<Body>,
     dataset_lock: Arc<Mutex<Dataset>>,
-) -> Box<Future<Item = Response<Body>, Error = hyper::Error> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = hyper::Error> + Send> {
     Box::new(request.into_body().concat2().and_then(move |body| {
         // TODO error handle
         let nquads = String::from_utf8(body.to_vec()).unwrap();
@@ -59,14 +59,15 @@ fn quads_service_post(
     }))
 }
 
-fn quad_service_unknown_method() -> Box<Future<Item = Response<Body>, Error = hyper::Error> + Send>
-{
+fn quad_service_unknown_method(
+) -> Box<dyn Future<Item = Response<Body>, Error = hyper::Error> + Send> {
     Box::new(future::ok(
         Response::builder().status(405).body(Body::empty()).unwrap(),
     ))
 }
 
-fn quad_service_unknown_path() -> Box<Future<Item = Response<Body>, Error = hyper::Error> + Send> {
+fn quad_service_unknown_path() -> Box<dyn Future<Item = Response<Body>, Error = hyper::Error> + Send>
+{
     Box::new(future::ok(
         Response::builder().status(404).body(Body::empty()).unwrap(),
     ))

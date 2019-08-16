@@ -3,9 +3,6 @@ use std::fmt::Debug;
 
 // TODO futures
 
-#[cfg_attr(rustfmt, rustfmt_skip)]
-pub trait Quads<'a> = Iterator<Item = Quad<'a>>;
-
 pub trait Store<'a>: Debug + Sync {
     fn match_quads(
         &self,
@@ -13,7 +10,7 @@ pub trait Store<'a>: Debug + Sync {
         predicate: Option<Predicate<'a>>,
         object: Option<Object<'a>>,
         context: Context<'a>,
-    ) -> Quads<'a>;
+    ) -> Iterator<Item = Quad<'a>>;
 
     fn len(&self) -> usize;
 

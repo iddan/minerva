@@ -1,15 +1,15 @@
 // use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 use crate::quad::*;
-use crate::store::{Quads, Store};
+use crate::store::Store;
 
 #[derive(Debug)]
 pub struct Dataset<'a> {
-    store: &'a Store<'a>,
+    store: &'a dyn Store<'a>,
 }
 
 impl<'a> Dataset<'a> {
-    pub fn new(store: &'a Store<'a>) -> Dataset<'a> {
+    pub fn new(store: &'a dyn Store<'a>) -> Dataset<'a> {
         Dataset { store: store }
     }
     pub fn match_quads(
@@ -18,7 +18,7 @@ impl<'a> Dataset<'a> {
         predicate: Option<Predicate<'a>>,
         object: Option<Object<'a>>,
         context: Context<'a>,
-    ) -> Box<Quads<'a> + 'a> {
+    ) -> Box<dyn Iterator<Item = Quad<'a>> + 'a> {
         self.store.match_quads(subject, predicate, object, context)
     }
     pub fn insert(&mut self, quad: Quad<'a>) {
