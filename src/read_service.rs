@@ -1,19 +1,27 @@
-use std::sync::{Mutex};
-use serde::{Deserialize, Serialize};
-use crate::quad::{Quad, Subject, Predicate, Object, Context};
 use crate::dataset::Dataset;
-
+use crate::no_error::NoError;
+use crate::quad::{Context, Object, Predicate, Quad, Subject};
+use futures::stream;
+use serde::{Deserialize, Serialize};
+use std::sync::Mutex;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Params {
-    pub subject: Option<Subject>,
-    pub predicate: Option<Predicate>,
-    pub object: Option<Object>,
-    pub context: Option<Context>,
+pub struct Params<'a> {
+    pub subject: Option<Subject<'a>>,
+    pub predicate: Option<Predicate<'a>>,
+    pub object: Option<Object<'a>>,
+    pub context: Context<'a>,
 }
 
-
-pub fn read(params: Params, dataset_lock: &Mutex<Dataset>) -> impl Iterator<Item=&Quad> {
+pub fn read<'a>(
+    params: Params<'a>,
+    dataset_lock: &'a Mutex<Dataset<'a>>,
+) -> impl stream::Stream<Item = Quad<'a>, Error = NoError> {
     let dataset = dataset_lock.lock().unwrap();
-    return dataset.match_quads(&params.subject, &params.predicate, &params.object, &params.context);
+    return stream::iter_ok::<_, NoError>(dataset.match_quads(
+        params.subject,
+        params.predicate,
+        params.object,
+        params.context,
+    ));
 }

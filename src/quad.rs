@@ -1,27 +1,25 @@
 use crate::term::*;
-use serde::{Deserialize, Serialize};
 
-pub type Subject = Identifier;
-pub type Predicate = IRI;
-pub type Object = Node;
-pub type Context = Option<Identifier>;
+pub type Subject<'a> = &'a Identifier;
+pub type Predicate<'a> = &'a IRI;
+pub type Object<'a> = &'a Node;
+pub type Context<'a> = Option<&'a Identifier>;
 
-
-#[derive(Debug, Hash, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub struct Quad {
-    pub subject: Subject,
-    pub predicate: Predicate,
-    pub object: Object,
-    pub context: Context,
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+pub struct Quad<'a> {
+    pub subject: Subject<'a>,
+    pub predicate: Predicate<'a>,
+    pub object: Object<'a>,
+    pub context: Context<'a>,
 }
 
-impl Quad {
-    pub fn new<S, P, O, C>(subject: S, predicate: P, object: O, context: C) -> Quad
+impl<'a> Quad<'a> {
+    pub fn new<S, P, O, C>(subject: S, predicate: P, object: O, context: C) -> Quad<'a>
     where
-        S: Into<Subject>,
-        P: Into<Predicate>,
-        O: Into<Object>,
-        C: Into<Context>,
+        S: Into<Subject<'a>>,
+        P: Into<Predicate<'a>>,
+        O: Into<Object<'a>>,
+        C: Into<Context<'a>>,
     {
         Quad {
             subject: subject.into(),

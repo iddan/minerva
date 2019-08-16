@@ -1,12 +1,12 @@
+use env_logger;
 use futures::future::Future;
-use minerva::server_http;
+use log;
+use log::info;
 use minerva::dataset::Dataset;
 use minerva::namespace::{Namespace, RDF};
 use minerva::quad::Quad;
+use minerva::server_http;
 use minerva::term::{BlankNode, Identifier};
-use log;
-use log::info;
-use env_logger;
 
 fn main() {
     // Example data
@@ -35,8 +35,5 @@ fn main() {
 
     info!("Listening on {}", address);
 
-    tokio::run(
-        server_http::serve(dataset, address)
-            .map_err(|e| eprintln!("server error: {}", e))
-    );
+    tokio::run(server_http::serve(dataset, address).map_err(|e| eprintln!("server error: {}", e)));
 }
