@@ -4,15 +4,14 @@
 #![feature(trait_alias)]
 
 pub mod dataset;
-pub mod namespace;
-pub mod quad;
-pub mod server_http;
-// mod server_websocket;
 pub mod memory_store;
+pub mod namespace;
 mod no_error;
 pub mod nquads_deserialize;
 pub mod nquads_serialize;
+pub mod quad;
 mod read_service;
+pub mod server_http;
 pub mod store;
 pub mod term;
 mod test_set;
@@ -50,6 +49,6 @@ mod tests {
         let fact4 = Quad::new(&tamir, &_type, &Person, context);
         let lior = IRI::new("http://example.com/test#lior");
         let fact5 = Quad::new(&lior, &_type, &Person, context);
-        dataset.extend(vec![fact3, fact4, fact5].iter());
+        dataset.extend(vec![fact3, fact4, fact5]);
     }
 }

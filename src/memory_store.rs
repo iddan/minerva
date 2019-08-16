@@ -1,7 +1,6 @@
 use crate::quad::{Context, Object, Predicate, Quad, Subject};
 use crate::store::{Quads, Store};
 use crate::term::{node_to_identifier, Node, IRI};
-use futures::stream::Stream;
 use petgraph::graph::{DiGraph, EdgeIndex, NodeIndex};
 use petgraph::visit::EdgeRef;
 use petgraph::Direction;

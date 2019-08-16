@@ -2,10 +2,9 @@ use crate::dataset::Dataset;
 use crate::no_error::NoError;
 use crate::quad::{Context, Object, Predicate, Quad, Subject};
 use futures::stream;
-use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Params<'a> {
     pub subject: Option<Subject<'a>>,
     pub predicate: Option<Predicate<'a>>,
