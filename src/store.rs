@@ -17,7 +17,5 @@ pub trait Store<'a>: Debug + Sync {
 
     fn len(&self) -> usize;
 
-    fn insert_quads(&self, quads: &Iterator<Item = &'a Quad<'a>>) {
-        unimplemented!()
-    }
+    fn insert_quads(&self, quads: &Iterator<Item = &'a Quad<'a>>);
 }

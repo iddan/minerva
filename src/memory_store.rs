@@ -42,7 +42,21 @@ impl<'a> Store<'a> for MemoryStore<'a> {
     }
 
     fn insert_quads(&self, quads: &Iterator<Item = &'a Quad<'a>>) {
-        unimplemented!()
+        for quad in quads {
+            let subject = quad.subject;
+            let predicate = quad.predicate;
+            let object = quad.object;
+            let context = quad.context;
+            let subject_index = self.graph.add_node(subject);
+            let object_index = self.graph.add_node(object);
+            self.node_to_index[subject] = subject_index;
+            self.node_to_index[object] = object_index;
+            self.graph.add_edge(subject_index, object_index, predicate);
+            match context {
+                Some(iri) => unimplemented!(),
+                None => {}
+            }
+        }
     }
 
     fn match_quads(
