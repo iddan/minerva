@@ -81,19 +81,19 @@ mod tests {
     pub fn test_serialize() {
         let set = test_set::get();
         let nquads = String::from_utf8(fs::read("src/test_set.nq").unwrap()).unwrap();
-        let mut nquads_set: HashSet<&String> = HashSet::new();
+        let mut nquads_set: HashSet<String> = HashSet::new();
         nquads_set.extend(nquads.split('\n').map(|s| {
             let mut s = s.to_owned();
             s.push('\n');
-            &s
+            s
         }));
 
         let test_set_stream =
             futures::stream::iter_ok::<_, NoError>(set.iter().map(|quad| quad.to_owned()));
         let result = serialize(test_set_stream).collect();
-        let serialized_vec = result.wait().unwrap();
-        let mut serialized = HashSet::new();
-        serialized.extend(serialized_vec.iter().map(|s| s.to_owned()));
+        let serialized_vec: Vec<&str> = result.wait().unwrap();
+        let mut serialized: HashSet<String> = HashSet::new();
+        serialized.extend(serialized_vec.iter().map(|s| s.to_owned()).collect());
         println!("{:?}", serialized.difference(&nquads_set));
     }
 }

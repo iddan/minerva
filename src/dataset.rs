@@ -1,30 +1,23 @@
 // use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 use crate::quad::*;
-use crate::store::Store;
 
-#[derive(Debug)]
-pub struct Dataset<'a> {
-    store: &'a dyn Store<'a>,
-}
+pub trait Dataset<'a>: Extend<Quad<'a>> {
+    fn len(&self) -> usize;
 
-impl<'a> Dataset<'a> {
-    pub fn new(store: &'a dyn Store<'a>) -> Dataset<'a> {
-        Dataset { store: store }
-    }
-    pub fn match_quads(
+    fn match_quads(
         &self,
         subject: Option<Subject<'a>>,
         predicate: Option<Predicate<'a>>,
         object: Option<Object<'a>>,
         context: Context<'a>,
-    ) -> Box<dyn Iterator<Item = Quad<'a>> + 'a> {
-        self.store.match_quads(subject, predicate, object, context)
+    ) -> Box<dyn Iterator<Item = Quad<'a>> + 'a>;
+
+    fn insert(&mut self, quad: Quad<'a>) {
+        self.extend(vec![quad]);
     }
-    pub fn insert(&mut self, quad: Quad<'a>) {
-        self.store.insert_quads(&[quad].iter());
-    }
-    pub fn contains(&self, quad: Quad<'a>) -> bool {
+
+    fn contains(&self, quad: Quad<'a>) -> bool {
         unimplemented!()
     }
     // pub fn subjects(
@@ -86,15 +79,6 @@ impl<'a> Dataset<'a> {
     // }
 }
 
-impl<'a> IntoIterator for Dataset<'a> {
-    type Item = Quad<'a>;
-    type IntoIter = std::collections::hash_set::IntoIter<Quad<'a>>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.store.match_quads(None, None, None, None).into_iter()
-    }
-}
-
 // impl<'a> Add for Dataset<'a> {
 //     type Output = Dataset<'a>;
 
@@ -130,9 +114,3 @@ impl<'a> IntoIterator for Dataset<'a> {
 //         };
 //     }
 // }
-
-impl<'a> Extend<Quad<'a>> for Dataset<'a> {
-    fn extend<I: IntoIterator>(&mut self, quads: I) {
-        self.store.extend(quads);
-    }
-}

@@ -1,5 +1,5 @@
 use crate::quad::{Context, Object, Predicate, Quad, Subject};
-use crate::store::Store;
+use crate::dataset::Dataset;
 use crate::term::{node_to_identifier, Node, IRI};
 use petgraph::graph::{DiGraph, EdgeIndex, NodeIndex};
 use petgraph::visit::EdgeRef;
@@ -7,14 +7,14 @@ use petgraph::Direction;
 use std::collections::HashMap;
 
 #[derive(Debug)]
-pub struct MemoryStore<'a> {
+pub struct MemoryDataset<'a> {
     node_to_index: HashMap<&'a Node, NodeIndex>,
     graph: DiGraph<&'a Node, &'a IRI>,
 }
 
-impl<'a> MemoryStore<'a> {
-    pub fn new() -> MemoryStore<'a> {
-        MemoryStore {
+impl <'a> MemoryDataset<'a> {
+    pub fn new() -> MemoryDataset<'a> {
+        MemoryDataset {
             graph: DiGraph::new(),
             node_to_index: HashMap::new(),
         }
@@ -26,36 +26,18 @@ impl<'a> MemoryStore<'a> {
     ) -> Quad<'a> {
         // TODO fix to_owned()
         let subject_index = edge.source();
-        let subject_node = self.graph.node_weight(subject_index).unwrap().to_owned();
+        let subject_node = self.graph[subject_index];
         let subject = node_to_identifier(subject_node).unwrap();
         let object_index = edge.target();
-        let object = self.graph.node_weight(object_index).unwrap().to_owned();
-        let predicate = edge.weight().to_owned();
-        Quad::new(subject, predicate, object, None)
+        let object = self.graph[object_index];
+        let predicate = self.graph[edge.id()];
+        Quad::<'a>::new(subject, predicate, object, None)
     }
 }
 
-impl<'a> Store<'a> for MemoryStore<'a> {
+impl <'a> Dataset<'a> for MemoryDataset<'a> {
     fn len(&self) -> usize {
         self.graph.edge_count()
-    }
-
-    fn insert_quads(&self, quads: &dyn Iterator<Item = &'a Quad<'a>>) {
-        for quad in quads {
-            let subject = quad.subject;
-            let predicate = quad.predicate;
-            let object = quad.object;
-            let context = quad.context;
-            let subject_index = self.graph.add_node(subject);
-            let object_index = self.graph.add_node(object);
-            self.node_to_index[subject] = subject_index;
-            self.node_to_index[object] = object_index;
-            self.graph.add_edge(subject_index, object_index, predicate);
-            match context {
-                Some(iri) => unimplemented!(),
-                None => {}
-            }
-        }
     }
 
     fn match_quads(
@@ -64,13 +46,14 @@ impl<'a> Store<'a> for MemoryStore<'a> {
         predicate: Option<Predicate<'a>>,
         object: Option<Object<'a>>,
         context: Context<'a>,
-    ) -> dyn Iterator<Item = Quad<'a>> {
+    ) -> Box<dyn Iterator<Item = Quad<'a>>> {
         match (subject, predicate, object, context) {
             (Some(subject), None, None, None) => {
-                let subject_index = self.node_to_index[subject.into()];
-                self.graph
+                let subject_node: &Node = subject.into();
+                let subject_index = self.node_to_index[subject_node];
+                Box::new(self.graph
                     .edges_directed(subject_index, Direction::Outgoing)
-                    .map(|edge| self.edge_to_quad(edge))
+                    .map(|edge| self.edge_to_quad(edge)))
             }
             (None, Some(predicate), None, None) => {
                 unimplemented!();
@@ -78,9 +61,9 @@ impl<'a> Store<'a> for MemoryStore<'a> {
             (None, None, Some(object), None) => {
                 let node: &'a Node = object.into();
                 let object_index = self.node_to_index[object.into()];
-                self.graph
+                Box::new(self.graph
                     .edges_directed(object_index, Direction::Incoming)
-                    .map(|edge| self.edge_to_quad(edge))
+                    .map(|edge| self.edge_to_quad(edge)))
             }
             (Some(subject), Some(predicate), None, None) => {
                 unimplemented!();
@@ -91,6 +74,27 @@ impl<'a> Store<'a> for MemoryStore<'a> {
             }
             (None, Some(predicate), Some(object), None) => {
                 unimplemented!();
+            }
+        }
+    }
+}
+
+impl <'a>Extend<Quad<'a>> for MemoryDataset<'a> {
+    fn extend<T: IntoIterator<Item=Quad<'a>>>(&mut self, quads: T) {
+        for quad in quads {
+            let subject = quad.subject;
+            let predicate = quad.predicate;
+            let object = quad.object;
+            let context = quad.context;
+            let subject_node = subject.into();
+            let subject_index = self.graph.add_node(subject_node);
+            let object_index = self.graph.add_node(object);
+            self.node_to_index[subject_node] = subject_index;
+            self.node_to_index[object] = object_index;
+            self.graph.add_edge(subject_index, object_index, predicate);
+            match context {
+                Some(iri) => unimplemented!(),
+                None => {}
             }
         }
     }

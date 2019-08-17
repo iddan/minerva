@@ -2,7 +2,7 @@
 #![crate_name = "minerva"]
 
 pub mod dataset;
-pub mod memory_store;
+pub mod memory_dataset;
 pub mod namespace;
 mod no_error;
 pub mod nquads_deserialize;
@@ -10,7 +10,6 @@ pub mod nquads_serialize;
 pub mod quad;
 mod read_service;
 pub mod server_http;
-pub mod store;
 pub mod term;
 mod test_set;
 mod write_service;
@@ -18,10 +17,10 @@ mod write_service;
 #[cfg(test)]
 mod tests {
     use crate::dataset::Dataset;
-    use crate::memory_store::MemoryStore;
+    use crate::memory_dataset::MemoryDataset;
     use crate::namespace::{Namespace, RDF};
     use crate::quad::Quad;
-    use crate::term::{Identifier, Node, IRI};
+    use crate::term::{Identifier, IRI};
     #[test]
     fn it_works() {
         let example = Namespace::new("http://example.com#");
@@ -33,8 +32,7 @@ mod tests {
         let ontology = example.iri("ontology");
         let context = Some(&Identifier::IRI(ontology));
         let fact = Quad::new(&iddan, &likes, &tamir, context);
-        let mut store = MemoryStore::new();
-        let mut dataset = Dataset::new(&store);
+        let mut dataset = MemoryDataset::new();
         dataset.insert(fact);
         println!("{:?}", dataset);
         let fact2 = Quad::new(&tamir, &likes, &iddan, context);
