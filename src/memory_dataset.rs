@@ -3,7 +3,7 @@ use crate::dataset::Dataset;
 use crate::term::{node_to_identifier, Node, IRI};
 use petgraph::graph::{DiGraph, EdgeIndex, NodeIndex};
 use petgraph::visit::EdgeRef;
-use petgraph::Direction;
+use petgraph::{Direction};
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -27,11 +27,11 @@ impl <'a> MemoryDataset<'a> {
         // TODO fix to_owned()
         let subject_index = edge.source();
         let subject_node = self.graph[subject_index];
-        let subject = node_to_identifier(subject_node).unwrap();
+        let subject = node_to_identifier(&subject_node).unwrap();
         let object_index = edge.target();
         let object = self.graph[object_index];
         let predicate = self.graph[edge.id()];
-        Quad::<'a>::new(subject, predicate, object, None)
+        Quad::new(subject, predicate, object, None)
     }
 }
 
@@ -46,14 +46,14 @@ impl <'a> Dataset<'a> for MemoryDataset<'a> {
         predicate: Option<Predicate<'a>>,
         object: Option<Object<'a>>,
         context: Context<'a>,
-    ) -> Box<dyn Iterator<Item = Quad<'a>>> {
+    ) -> Box<dyn Iterator<Item = Quad<'a>> + 'a> {
         match (subject, predicate, object, context) {
             (Some(subject), None, None, None) => {
                 let subject_node: &Node = subject.into();
                 let subject_index = self.node_to_index[subject_node];
-                Box::new(self.graph
-                    .edges_directed(subject_index, Direction::Outgoing)
-                    .map(|edge| self.edge_to_quad(edge)))
+                let edges = self.graph.edges_directed(subject_index, Direction::Outgoing);
+                let quads = edges.map(|edge| self.edge_to_quad(edge));
+                Box::new(quads)
             }
             (None, Some(predicate), None, None) => {
                 unimplemented!();
@@ -61,9 +61,9 @@ impl <'a> Dataset<'a> for MemoryDataset<'a> {
             (None, None, Some(object), None) => {
                 let node: &'a Node = object.into();
                 let object_index = self.node_to_index[object.into()];
-                Box::new(self.graph
-                    .edges_directed(object_index, Direction::Incoming)
-                    .map(|edge| self.edge_to_quad(edge)))
+                let edges = self.graph.edges_directed(object_index, Direction::Incoming);
+                let quads = edges.map(|edge| self.edge_to_quad(edge));
+                Box::new(quads)
             }
             (Some(subject), Some(predicate), None, None) => {
                 unimplemented!();

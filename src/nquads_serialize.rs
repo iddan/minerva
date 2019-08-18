@@ -2,7 +2,7 @@ use crate::namespace::XSD;
 use crate::quad::Quad;
 use crate::term::{BlankNode, Identifier, Literal, Node, IRI};
 use futures::stream::Stream;
-use std::error::Error;
+use crate::no_error::NoError;
 
 pub fn serialize_literal(literal: &Literal) -> String {
     let escaped_value = literal.value.replace("\"", "\\\"");
@@ -62,9 +62,9 @@ pub fn serialize_quad(quad: Quad) -> String {
 }
 
 pub fn serialize<'a>(
-    stream: impl Stream<Item = Quad<'a>, Error = impl Error>,
-) -> impl Stream<Item = &'a str, Error = impl Error> {
-    stream.map(|quad| &serialize_quad(quad)[..])
+    stream: impl Stream<Item = Quad<'a>, Error=NoError> + 'a,
+) -> impl Stream<Item = String, Error = NoError> + 'a {
+    stream.map(|quad| serialize_quad(quad))
 }
 
 #[cfg(test)]
@@ -91,7 +91,7 @@ mod tests {
         let test_set_stream =
             futures::stream::iter_ok::<_, NoError>(set.iter().map(|quad| quad.to_owned()));
         let result = serialize(test_set_stream).collect();
-        let serialized_vec: Vec<&str> = result.wait().unwrap();
+        let serialized_vec: Vec<String> = result.wait().unwrap();
         let mut serialized: HashSet<String> = HashSet::new();
         serialized.extend(serialized_vec.iter().map(|s| s.to_owned()).collect());
         println!("{:?}", serialized.difference(&nquads_set));

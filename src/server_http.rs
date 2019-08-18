@@ -1,4 +1,3 @@
-use crate::dataset::Dataset;
 use crate::memory_dataset::MemoryDataset;
 use crate::nquads_serialize;
 use crate::read_service;
@@ -30,7 +29,7 @@ impl<'a> From<Request<Body>> for read_service::Params {
 fn quads_service_get<'a>(
     request: Request<Body>,
     dataset_lock: Arc<Mutex<MemoryDataset<'a>>>,
-) -> Box<dyn Future<Item = Response<Body>, Error = hyper::Error> + Send> {
+) -> Box<dyn Future<Item = Response<Body>, Error = hyper::Error> + Send + 'a> {
     let params: read_service::Params = request.into();
     match read_service::read(params, &dataset_lock) {
         Ok(quads) => {
@@ -58,8 +57,8 @@ fn quads_service_get<'a>(
 fn quads_service_post<'a>(
     request: Request<Body>,
     dataset_lock: Arc<Mutex<MemoryDataset<'a>>>,
-) -> Box<dyn Future<Item = Response<Body>, Error = hyper::Error> + Send> {
-    request.into_body().concat2().and_then(move |body| {
+) -> Box<dyn Future<Item = Response<Body>, Error = hyper::Error> + Send + 'a> {
+    Box::new(request.into_body().concat2().and_then(move |body| {
         // TODO error handle
         let nquads = String::from_utf8(body.to_vec()).unwrap();
         let result = write_service::write(nquads, &dataset_lock);
@@ -67,7 +66,7 @@ fn quads_service_post<'a>(
             Ok(_) => Ok(Response::builder().status(201).body(Body::empty()).unwrap()),
             Err(_) => Ok(Response::builder().status(401).body(Body::empty()).unwrap()),
         }
-    })
+    }))
 }
 
 fn quad_service_unknown_method(
@@ -87,9 +86,9 @@ fn quad_service_unknown_path() -> Box<dyn Future<Item = Response<Body>, Error = 
 pub fn serve<'a>(
     dataset: MemoryDataset<'a>,
     address: &str,
-) -> Box<dyn Future<Item = Response<Body>, Error = hyper::Error> + Send> {
+) -> Box<dyn Future<Item = (), Error = hyper::Error> + Send> {
     let socket_address = address.parse().unwrap();
-    let shared_dataset = Arc::new(Mutex::new(dataset));
+    let shared_dataset: Arc<Mutex<MemoryDataset<'a>>> = Arc::new(Mutex::new(dataset));
     let make_service = make_service_fn(move |_| {
         let cloned_dataset = Arc::clone(&shared_dataset);
         service_fn(move |request| {
