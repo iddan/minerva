@@ -1,92 +1,94 @@
+use crate::memory_dataset::MemoryDataset;
+use crate::nquads_serialize;
+use crate::read_service;
+use crate::write_service;
 use futures::future;
-use std::sync::{Arc,Mutex};
 use futures::stream::Stream;
 use http::method::Method;
-use hyper::{Body, Request, Response, Server};
 use hyper::rt::Future;
 use hyper::service::{make_service_fn, service_fn};
-use log::{info};
+use hyper::{Body, Request, Response, Server};
+use log::info;
 use serde_qs;
-use crate::dataset::Dataset;
-use crate::nquads_serialize;
-use crate::nquads_deserialize;
-use crate::read_service;
+use std::sync::{Arc, Mutex};
 
-impl From<Request<Body>> for read_service::Params {
+impl<'a> From<Request<Body>> for read_service::Params {
     fn from(request: Request<Body>) -> read_service::Params {
         match request.uri().query() {
-            Some(query) => {
-                serde_qs::from_str(&query).unwrap()
+            Some(query) => serde_qs::from_str(&query).unwrap(),
+            None => read_service::Params {
+                subject: None,
+                predicate: None,
+                object: None,
+                context: None,
             },
-            None => {
-                read_service::Params {
-                    subject: None,
-                    predicate: None,
-                    object: None,
-                    context: None
-                }
-            }
         }
     }
 }
 
-fn quads_service_get<'a>(request: Request<Body>, dataset_lock: Arc<Mutex<Dataset>>) -> Box<Future<Item=Response<Body>, Error=hyper::Error> + Send> {
+fn quads_service_get<'a>(
+    request: Request<Body>,
+    dataset_lock: Arc<Mutex<MemoryDataset<'a>>>,
+) -> Box<dyn Future<Item = Response<Body>, Error = hyper::Error> + Send + 'a> {
     let params: read_service::Params = request.into();
-    let quads = read_service::read(params, &dataset_lock);
-    let stream = futures::stream::iter_ok::<_, hyper::Error>(nquads_serialize::serialize(quads));
-    Box::new(future::ok(Response::builder()
-        .status(200)
-        .header("Content-Type", "x-nquads")
-        .body(Body::wrap_stream(stream))
-        .unwrap()))
+    match read_service::read(params, &dataset_lock) {
+        Ok(quads) => {
+            let stream = nquads_serialize::serialize(quads);
+            Box::new(future::ok(
+                Response::builder()
+                    .status(200)
+                    .header("Content-Type", "x-nquads")
+                    .body(Body::wrap_stream(stream))
+                    .unwrap(),
+            ))
+        },
+        Err(error) => {
+            Box::new(future::ok(
+                Response::builder()
+                    .status(400)
+                    .header("Content-Type", "text")
+                    .body(Body::from(error))
+                    .unwrap()
+            ))
+        }
+    }
 }
 
-
-fn quads_service_post(request: Request<Body>, dataset_lock: Arc<Mutex<Dataset>>) -> Box<Future<Item=Response<Body>, Error=hyper::Error> + Send> {
+fn quads_service_post<'a>(
+    request: Request<Body>,
+    dataset_lock: Arc<Mutex<MemoryDataset<'a>>>,
+) -> Box<dyn Future<Item = Response<Body>, Error = hyper::Error> + Send + 'a> {
     Box::new(request.into_body().concat2().and_then(move |body| {
         // TODO error handle
         let nquads = String::from_utf8(body.to_vec()).unwrap();
-        let quads = nquads_deserialize::deserialize(&nquads);
-        // TODO move
-        let mut dataset = dataset_lock.lock().unwrap();
-        for result in quads {
-            if result.is_err() {
-                return Ok(
-                    Response::builder()
-                        .status(401)
-                        .body(Body::empty())
-                        .unwrap()
-                )
-            }
-            dataset.insert(result.unwrap())
+        let result = write_service::write(nquads, &dataset_lock);
+        match result {
+            Ok(_) => Ok(Response::builder().status(201).body(Body::empty()).unwrap()),
+            Err(_) => Ok(Response::builder().status(401).body(Body::empty()).unwrap()),
         }
-        Ok(Response::builder()
-            .status(201)
-            .body(Body::empty())
-            .unwrap())
     }))
 }
 
-
-fn quad_service_unknown_method() -> Box<Future<Item=Response<Body>, Error=hyper::Error> + Send> {
-    Box::new(future::ok(Response::builder()
-        .status(405)
-        .body(Body::empty())
-        .unwrap()))
+fn quad_service_unknown_method(
+) -> Box<dyn Future<Item = Response<Body>, Error = hyper::Error> + Send> {
+    Box::new(future::ok(
+        Response::builder().status(405).body(Body::empty()).unwrap(),
+    ))
 }
 
-
-fn quad_service_unknown_path() -> Box<Future<Item=Response<Body>, Error=hyper::Error> + Send> {
-    Box::new(future::ok(Response::builder()
-                .status(404)
-                .body(Body::empty())
-                .unwrap()))
+fn quad_service_unknown_path() -> Box<dyn Future<Item = Response<Body>, Error = hyper::Error> + Send>
+{
+    Box::new(future::ok(
+        Response::builder().status(404).body(Body::empty()).unwrap(),
+    ))
 }
 
-
-pub fn serve(dataset: Dataset, address: &str) -> impl Future<Item=(), Error=hyper::Error> {
+pub fn serve<'a>(
+    dataset: MemoryDataset<'a>,
+    address: &str,
+) -> Box<dyn Future<Item = (), Error = hyper::Error> + Send> {
     let socket_address = address.parse().unwrap();
-    let shared_dataset = Arc::new(Mutex::new(dataset));
+    let shared_dataset: Arc<Mutex<MemoryDataset<'a>>> = Arc::new(Mutex::new(dataset));
     let make_service = make_service_fn(move |_| {
         let cloned_dataset = Arc::clone(&shared_dataset);
         service_fn(move |request| {
@@ -99,11 +101,10 @@ pub fn serve(dataset: Dataset, address: &str) -> impl Future<Item=(), Error=hype
                 (&Method::GET, "/") => quads_service_get(request, cloned_dataset),
                 (&Method::POST, "/") => quads_service_post(request, cloned_dataset),
                 (_, "/") => quad_service_unknown_method(),
-                _ => quad_service_unknown_path()
+                _ => quad_service_unknown_path(),
             }
         })
     });
 
-    Server::bind(&socket_address)
-        .serve(make_service)
+    Box::new(Server::bind(&socket_address).serve(make_service))
 }
