@@ -17,7 +17,7 @@ pub struct Params {
 
 pub fn read<'a>(
     params: Params,
-    dataset_lock: &'a Mutex<MemoryDataset<'a>>,
+    dataset_lock: &'a Mutex<MemoryDataset>,
 ) -> Result<impl stream::Stream<Item = Quad<'a>, Error = NoError>, String> {
     let dataset = dataset_lock.lock().unwrap();
     let subject = match params.subject {

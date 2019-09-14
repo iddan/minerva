@@ -149,6 +149,15 @@ impl<'a> From<&'a Identifier> for &'a Node {
     }
 }
 
+impl From<Identifier> for Node {
+    fn from(value: Identifier) -> Node {
+        match value {
+            Identifier::IRI(iri) => iri.into(),
+            Identifier::BlankNode(blank_node) => blank_node.into(),
+        }
+    }
+}
+
 pub fn node_to_identifier<'a>(node: &'a Node) -> Result<&'a Identifier, &'static str> {
     match node {
         Node::IRI(iri) => Ok(&Identifier::IRI(iri.to_owned())),

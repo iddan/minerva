@@ -82,11 +82,7 @@ mod tests {
         let set = test_set::get();
         let nquads = String::from_utf8(fs::read("src/test_set.nq").unwrap()).unwrap();
         let mut nquads_set: HashSet<String> = HashSet::new();
-        nquads_set.extend(nquads.split('\n').map(|s| {
-            let mut s = s.to_owned();
-            s.push('\n');
-            s
-        }));
+        nquads_set.extend(nquads.split('\n').map(|s| format!("{}\n", s)));
 
         let test_set_stream =
             futures::stream::iter_ok::<_, NoError>(set.iter().map(|quad| quad.to_owned()));
