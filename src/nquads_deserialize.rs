@@ -291,13 +291,12 @@ mod tests {
     use crate::quad::Quad;
     use crate::test_set;
     use std::collections::HashSet;
-    use std::fs;
     #[test]
     fn test_deserialize() {
-        let nquads = String::from_utf8(fs::read("src/test_set.nq").unwrap()).unwrap();
+        let nquads = test_set::get_nquads_string();
         let quads_result: Result<HashSet<Quad>, _> = deserialize(&nquads).collect();
         let quads = quads_result.unwrap();
-        let set = test_set::get();
+        let set = test_set::get_quads();
         assert_eq!(quads, set);
     }
 }
