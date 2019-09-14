@@ -193,7 +193,7 @@ pub struct NQuadsDeserializer<I: Iterator<Item = char>> {
 }
 
 impl<'a, I: Iterator<Item = char>> NQuadsDeserializer<I> {
-    fn get_next(&self) -> Result<Option<Quad<'a>>, String> {
+    fn get_next(&mut self) -> Result<Option<Quad>, String> {
         let mut subject: Option<Subject> = None;
         let mut predicate: Option<Predicate> = None;
         let mut object: Option<Object> = None;
@@ -238,16 +238,16 @@ impl<'a, I: Iterator<Item = char>> NQuadsDeserializer<I> {
                 Some(_) => {
                     if subject.is_none() {
                         let identifier = deserialize_identifier(&mut self.chars)?;
-                        subject = Some(&identifier);
+                        subject = Some(identifier);
                     } else if predicate.is_none() {
                         let iri = deserialize_iri(&mut self.chars)?;
-                        predicate = Some(&iri);
+                        predicate = Some(iri);
                     } else if object.is_none() {
                         let node = deserialize_node(&mut self.chars)?;
-                        object = Some(&node);
+                        object = Some(node);
                     } else {
                         let identifier = deserialize_identifier(&mut self.chars)?;
-                        context = Some(Some(&identifier));
+                        context = Some(Some(identifier));
                     }
                 }
                 None => return Ok(None),
@@ -257,7 +257,7 @@ impl<'a, I: Iterator<Item = char>> NQuadsDeserializer<I> {
 }
 
 impl<I: Iterator<Item = char>> Iterator for NQuadsDeserializer<I> {
-    type Item = Result<Quad<'static>, String>;
+    type Item = Result<Quad, String>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let result = self.get_next();
