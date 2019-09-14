@@ -1,6 +1,5 @@
 #![crate_type = "lib"]
 #![crate_name = "minerva"]
-#![feature(try_blocks)]
 
 pub mod dataset;
 pub mod namespace;
